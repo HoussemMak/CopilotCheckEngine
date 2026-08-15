@@ -28,9 +28,12 @@ function Get-CceMailboxSample {
                 })
             }
             else {
+                # Sentinelle technique : elle voisine les valeurs Exchange (UserMailbox,
+                # RemoteUserMailbox) dans la colonne constatee, donc elle reste en anglais
+                # comme elles et n'est pas localisee.
                 $result.Add([pscustomobject]@{
                     Upn                  = $u.UserPrincipalName
-                    RecipientTypeDetails = 'Introuvable'
+                    RecipientTypeDetails = 'NotFound'
                     Identity             = $null
                 })
             }
@@ -65,7 +68,7 @@ function Invoke-CceCheck24 {
     }
 
     $groups = $sample | Group-Object RecipientTypeDetails | Sort-Object Count -Descending
-    $onPrem = @($sample | Where-Object { $_.RecipientTypeDetails -in @('RemoteUserMailbox', 'MailUser', 'Introuvable') })
+    $onPrem = @($sample | Where-Object { $_.RecipientTypeDetails -in @('RemoteUserMailbox', 'MailUser', 'NotFound') })
 
     $observed = ($groups | ForEach-Object { "$($_.Name)=$($_.Count)" }) -join ' | '
 

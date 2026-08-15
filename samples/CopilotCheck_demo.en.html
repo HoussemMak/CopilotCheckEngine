@@ -94,7 +94,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
   <div class="sub">
     Tenant: <strong>Contoso Demo</strong>
     &nbsp;&middot;&nbsp; 00000000-1111-2222-3333-444444444444
-    &nbsp;&middot;&nbsp; Generated on 15-08-2026 13:20
+    &nbsp;&middot;&nbsp; Generated on 15-08-2026 13:54
   </div>
   <div><span class="svc svc-on">Graph: connected</span> <span class="svc svc-on">Exchange: connected</span> <span class="svc svc-on">Purview: connected</span> <span class="svc svc-on">SharePoint: connected</span> <span class="svc svc-on">Teams: connected</span></div>
 </header>
@@ -179,10 +179,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 
 <section class="group">
   <h2>APPLICATIONS AND AUTHENTICATION <span class="group-count">4</span></h2>
-  <article class="item" data-status="manual" data-priority="Blocking" data-text="6 deploy microsoft 365 apps for enterprise on the workstations office apps manual verification required (no public api)">
+  <article class="item" data-status="manual" data-priority="Blocking" data-text="6 microsoft 365 apps for enterprise deployed on the workstations office apps manual verification required (no public api)">
   <header class="item-head">
     <span class="item-id">#6</span>
-    <h3>Deploy Microsoft 365 Apps for enterprise on the workstations</h3>
+    <h3>Microsoft 365 Apps for enterprise deployed on the workstations</h3>
     <span class="badge badge-manual">Manual</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -200,10 +200,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Blocking" data-text="7 set the update channel to current channel or monthly enterprise channel office apps gap against the expected value">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="7 update channel = current channel or monthly enterprise office apps gap against the expected value">
   <header class="item-head">
     <span class="item-id">#7</span>
-    <h3>Set the update channel to Current Channel or Monthly Enterprise Channel</h3>
+    <h3>Update channel = Current Channel or Monthly Enterprise</h3>
     <span class="badge badge-ko">Non-compliant</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -221,10 +221,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Blocking" data-text="8 enable modern authentication (oauth2) on the tenant office apps observed value matches the target">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="8 modern authentication (oauth2) enabled on the tenant office apps observed value matches the target">
   <header class="item-head">
     <span class="item-id">#8</span>
-    <h3>Enable Modern Authentication (OAuth2) on the tenant</h3>
+    <h3>Modern Authentication (OAuth2) enabled on the tenant</h3>
     <span class="badge badge-ok">Compliant</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -242,10 +242,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Blocking" data-text="9 enable connected experiences office apps manual verification required (no public api)">
+<article class="item" data-status="manual" data-priority="Blocking" data-text="9 connected experiences enabled office apps manual verification required (no public api)">
   <header class="item-head">
     <span class="item-id">#9</span>
-    <h3>Enable connected experiences</h3>
+    <h3>Connected experiences enabled</h3>
     <span class="badge badge-manual">Manual</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -350,10 +350,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Blocking" data-text="37 verify copilot propagation on a test user copilot service not connected during this run">
+<article class="item" data-status="na" data-priority="Blocking" data-text="37 check copilot propagation on a test user copilot service not connected during this run">
   <header class="item-head">
     <span class="item-id">#37</span>
-    <h3>Verify Copilot propagation on a test user</h3>
+    <h3>Check Copilot propagation on a test user</h3>
     <span class="badge badge-na">Not evaluated</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -365,7 +365,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="more">
       <summary>Why and how to configure</summary>
       <div class="block"><span class="block-title">Why</span>Verification on a test user is the indispensable validation step before large-scale deployment. Between global activation, licence assignment and effective propagation into the applications, 24 to 48 hours can elapse and many factors can block Copilot silently (conditional access policy, Connected Experiences, update channel). Testing with a real user confirms that the whole configuration chain works end to end. Without this check, the deployment risks failing for dozens or hundreds of users at the same time, generating a flood of support tickets and a negative first impression that does lasting damage to adoption.</div>
-      <div class="block"><span class="block-title">Where and how to configure</span>1. Assign the Copilot licence to a test user<br>2. Wait 24-48 h for propagation<br>3. Sign in as that user<br>4. Open Word &gt; Check the Copilot button in the ribbon<br>5. Open Outlook &gt; Check the Copilot icon<br>6. Open Teams &gt; Check the Copilot app in the side bar<br>7. Open https://copilot.microsoft.com &gt; Check access to Chat</div>
+      <div class="block"><span class="block-title">Where and how to configure</span>1. Assign the Copilot licence to a test user<br>2. Wait 24-48 h for propagation<br>3. Sign in as that user<br>4. Open Word &gt; Check the Copilot button in the ribbon<br>5. Open Outlook &gt; Check the Copilot icon<br>6. Open Teams &gt; Check the Copilot app in the app bar<br>7. Open https://copilot.microsoft.com &gt; Check access to Chat</div>
       <div class="block"><span class="block-title">Verification command</span><code>Manual test with a licensed user</code></div>
       <div class="block"><a href="https://learn.microsoft.com/copilot/microsoft-365/microsoft-365-copilot-enable-users" target="_blank" rel="noopener">Microsoft documentation</a></div>
     </details>
@@ -407,7 +407,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="more">
       <summary>Why and how to configure</summary>
       <div class="block"><span class="block-title">Why</span>Microsoft Viva Insights provides a detailed dashboard of Copilot&#39;s impact on productivity: time saved per user, adoption rate per team, before/after comparison. It is the tool recommended by Microsoft for measuring the ROI of Copilot and identifying the teams that benefit most from AI. Without Viva Insights, measuring the impact stays subjective and anecdotal.</div>
-      <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://insights.viva.office.com<br>   (or via https://admin.cloud.microsoft &gt; Admin centers &gt; Viva)<br>2. &#39;Copilot dashboard&#39; section<br>3. Check that Copilot data is being collected<br>4. Configure the analysis segments by department<br>5. Share the dashboard with the managers</div>
+      <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://insights.viva.office.com<br>   (or via https://admin.cloud.microsoft &gt; Admin centres &gt; Viva)<br>2. &#39;Copilot dashboard&#39; section<br>3. Check that Copilot data is being collected<br>4. Configure the analysis segments by department<br>5. Share the dashboard with the managers</div>
       <div class="block"><span class="block-title">Verification command</span><code>Via https://insights.viva.office.com &gt; Copilot dashboard</code></div>
       <div class="block"><a href="https://learn.microsoft.com/viva/insights/org-team-insights/copilot-dashboard" target="_blank" rel="noopener">Microsoft documentation</a></div>
     </details>
@@ -471,7 +471,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
       <summary>Why and how to configure</summary>
       <div class="block"><span class="block-title">Why</span>This setting displays a disclaimer to users when they use Copilot, informing them that the content is generated by AI and must be checked. It is an AI governance good practice that reminds users that Copilot can produce errors and that human verification is mandatory.</div>
       <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://admin.cloud.microsoft<br>2. Left-hand menu: Copilot &gt; Settings<br>3. &#39;View all&#39; tab<br>4. Click on &#39;Copilot AI disclaimer&#39;<br>5. Choose whether or not to display it<br>6. Customise the message if possible<br>7. Save</div>
-      <div class="block"><span class="block-title">Verification command</span><code>Via admin.cloud.microsoft &gt; Copilot &gt; Settings &gt; Disclaimer</code></div>
+      <div class="block"><span class="block-title">Verification command</span><code>Via admin.cloud.microsoft &gt; Copilot &gt; Settings &gt; AI disclaimer</code></div>
       <div class="block"><a href="https://learn.microsoft.com/copilot/microsoft-365/microsoft-365-copilot-page" target="_blank" rel="noopener">Microsoft documentation</a></div>
     </details>
   </div>
@@ -671,10 +671,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>COPILOT LICENSING <span class="group-count">5</span></h2>
-  <article class="item" data-status="ok" data-priority="Blocking" data-text="1 assign an m365 e3/e5 or business premium licence to the target users licensing observed value matches the target">
+  <article class="item" data-status="ok" data-priority="Blocking" data-text="1 m365 e3/e5 or business premium licence assigned to the target users licensing observed value matches the target">
   <header class="item-head">
     <span class="item-id">#1</span>
-    <h3>Assign an M365 E3/E5 or Business Premium licence to the target users</h3>
+    <h3>M365 E3/E5 or Business Premium licence assigned to the target users</h3>
     <span class="badge badge-ok">Compliant</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -692,10 +692,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Blocking" data-text="2 purchase the microsoft 365 copilot sku and confirm it is visible on the tenant licensing gap against the expected value">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="2 microsoft 365 copilot sku purchased and visible on the tenant licensing gap against the expected value">
   <header class="item-head">
     <span class="item-id">#2</span>
-    <h3>Purchase the Microsoft 365 Copilot SKU and confirm it is visible on the tenant</h3>
+    <h3>Microsoft 365 Copilot SKU purchased and visible on the tenant</h3>
     <span class="badge badge-ko">Non-compliant</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -708,15 +708,15 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
       <summary>Why and how to configure</summary>
       <div class="block"><span class="block-title">Why</span>The Microsoft 365 Copilot SKU is a separate subscription (around USD 30 per user per month) that is not included in any base licence, not even E5. Until this subscription has been purchased and is visible on the tenant, it is impossible to assign the Copilot licence to any user whatsoever. Without this step, the whole of the rest of the checklist is inapplicable, because the Copilot service simply does not exist in the environment.</div>
       <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://admin.cloud.microsoft<br>2. Billing &gt; Purchase services<br>3. Search for &#39;Microsoft 365 Copilot&#39;<br>4. Buy the number of licences required<br>5. After purchase: Billing &gt; Licences &gt; check that &#39;Microsoft 365 Copilot&#39; appears in the list</div>
-      <div class="block"><span class="block-title">Verification command</span><code>Get-MgSubscribedSku | Where {$_.SkuPartNumber -like &#39;*COPILOT*&#39;} | Select SkuPartNumber, @{N=&#39;Dispo&#39;;E={$_.PrepaidUnits.Enabled - $_.ConsumedUnits}}</code></div>
+      <div class="block"><span class="block-title">Verification command</span><code>Get-MgSubscribedSku | Where {$_.SkuPartNumber -like &#39;*COPILOT*&#39;} | Select SkuPartNumber, @{N=&#39;Available&#39;;E={$_.PrepaidUnits.Enabled - $_.ConsumedUnits}}</code></div>
       <div class="block"><a href="https://learn.microsoft.com/microsoft-365/admin/manage/assign-licenses-to-users" target="_blank" rel="noopener">Microsoft documentation</a></div>
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Blocking" data-text="3 assign the copilot licence individually or through a group licensing observed value matches the target">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="3 copilot licence assigned individually or through a group licensing observed value matches the target">
   <header class="item-head">
     <span class="item-id">#3</span>
-    <h3>Assign the Copilot licence individually or through a group</h3>
+    <h3>Copilot licence assigned individually or through a group</h3>
     <span class="badge badge-ok">Compliant</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -734,10 +734,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="warn" data-priority="Recommended" data-text="4 assign licences through an entra id group rather than manually licensing partial configuration: a decision is required">
+<article class="item" data-status="warn" data-priority="Recommended" data-text="4 licences assigned through an entra id group (not manually) licensing partial configuration: a decision is required">
   <header class="item-head">
     <span class="item-id">#4</span>
-    <h3>Assign licences through an Entra ID group rather than manually</h3>
+    <h3>Licences assigned through an Entra ID group (not manually)</h3>
     <span class="badge badge-warn">Attention</span>
     <span class="prio prio-recommended">Recommended</span>
   </header>
@@ -859,7 +859,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="evidence"><summary>Evidence collected</summary><pre>Demonstration data - check 10</pre></details>
     <details class="more">
       <summary>Why and how to configure</summary>
-      <div class="block"><span class="block-title">Why</span>Copilot considerably amplifies the risk posed by a compromised account: an attacker can use Copilot to query all of the victim&#39;s M365 data in natural language (emails, files, Teams conversations) in a matter of seconds, where doing it manually would take hours. MFA (multi-factor authentication) blocks 99.9 percent of account compromise attempts according to Microsoft. Without MFA, a single stolen or guessed password grants full access to Copilot and to every piece of data the user is able to view, turning Copilot into a mass exfiltration tool for the attacker.</div>
+      <div class="block"><span class="block-title">Why</span>Copilot considerably amplifies the risk posed by a compromised account: an attacker can use Copilot to query all of the victim&#39;s M365 data in natural language (emails, files, Teams conversations) in a matter of seconds, where doing it manually would take hours. MFA (multi-factor authentication) blocks 99.9 per cent of account compromise attempts according to Microsoft. Without MFA, a single stolen or guessed password grants full access to Copilot and to every piece of data the user is able to view, turning Copilot into a mass exfiltration tool for the attacker.</div>
       <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://entra.microsoft.com<br>2. Protection &gt; Conditional Access &gt; Policies<br>3. New policy &gt; Name: &#39;CA-MFA-Copilot-Users&#39;<br>4. Users: select the GRP-Copilot-Users group<br>5. Cloud apps: All cloud apps<br>6. Grant &gt; Require multifactor authentication<br>7. Enable policy &gt; Create</div>
       <div class="block"><span class="block-title">Verification command</span><code>Get-MgIdentityConditionalAccessPolicy | Where {$_.State -eq &#39;enabled&#39;} | Select DisplayName</code></div>
       <div class="block"><a href="https://learn.microsoft.com/entra/identity/conditional-access/howto-conditional-access-policy-all-users-mfa" target="_blank" rel="noopener">Microsoft documentation</a></div>
@@ -943,7 +943,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="evidence"><summary>Evidence collected</summary><pre>Demonstration data - check 14</pre></details>
     <details class="more">
       <summary>Why and how to configure</summary>
-      <div class="block"><span class="block-title">Why</span>Every Copilot licence assigned to a disabled account is a direct waste of 30 USD per month with no benefit whatsoever to the organisation. These needlessly consumed licences reduce the number of licences available to active staff who could genuinely make use of them. On top of that, a disabled but licensed account is a security risk: if it is re-enabled by mistake or compromised, the attacker immediately has Copilot at their disposal to explore the data. Without regular clean-up, the costs accumulate and can amount to thousands of dollars a year.</div>
+      <div class="block"><span class="block-title">Why</span>Every Copilot licence assigned to a disabled account is a direct waste of USD 30 per month with no benefit whatsoever to the organisation. These needlessly consumed licences reduce the number of licences available to active staff who could genuinely make use of them. On top of that, a disabled but licensed account is a security risk: if it is re-enabled by mistake or compromised, the attacker immediately has Copilot at their disposal to explore the data. Without regular clean-up, the costs accumulate and can amount to thousands of dollars a year.</div>
       <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://entra.microsoft.com<br>2. Users &gt; All users<br>3. Filter: Account status = Disabled<br>4. For each disabled account: click &gt; Licences<br>5. If Microsoft 365 Copilot is ticked: untick it and save<br>--- OR via PowerShell ---<br>Get-MgUser -Filter &#39;accountEnabled eq false&#39; -All | ForEach-Object { Remove-MgUserLicense -UserId $_.Id -RemoveLicenses @(&#39;&lt;CopilotSkuId&gt;&#39;) }</div>
       <div class="block"><span class="block-title">Verification command</span><code>Get-MgUser -Filter &#39;accountEnabled eq false&#39; -All</code></div>
       <div class="block"><a href="https://learn.microsoft.com/entra/identity/users/users-bulk-download" target="_blank" rel="noopener">Microsoft documentation</a></div>
@@ -1009,7 +1009,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="evidence"><summary>Evidence collected</summary><pre>Demonstration data - check 28</pre></details>
     <details class="more">
       <summary>Why and how to configure</summary>
-      <div class="block"><span class="block-title">Why</span>Pinning Copilot to the Teams app bar makes it visible and one click away for every user, with no need to hunt for it in the app catalogue. Adoption data shows that pinning increases Copilot usage by 40 to 60 percent compared with a deployment without pinning. Without this configuration, the majority of users never discover the Copilot app in Teams and never use the cross-application chat features, which are nonetheless the most powerful use case. Placing Copilot at the top of the app bar maximises its visibility and the return on investment of the licences.</div>
+      <div class="block"><span class="block-title">Why</span>Pinning Copilot to the Teams app bar makes it visible and one click away for every user, with no need to hunt for it in the app catalogue. Adoption data shows that pinning increases Copilot usage by 40 to 60 per cent compared with a deployment without pinning. Without this configuration, the majority of users never discover the Copilot app in Teams and never use the cross-application chat features, which are nonetheless the most powerful use case. Placing Copilot at the top of the app bar maximises its visibility and the return on investment of the licences.</div>
       <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://admin.teams.microsoft.com<br>2. Teams apps &gt; Setup policies<br>3. Click the &#39;Global&#39; policy (or the Copilot group&#39;s policy)<br>4. &#39;Pinned apps&#39; section<br>5. Click &#39;Add apps&#39;<br>6. Search for &#39;Microsoft 365 Copilot&#39; &gt; Add<br>7. Move it to the top of the list (drag and drop)<br>8. Save</div>
       <div class="block"><span class="block-title">Verification command</span><code>Get-CsTeamsAppSetupPolicy -Identity Global | Select -Expand PinnedAppBarApps</code></div>
       <div class="block"><a href="https://learn.microsoft.com/microsoftteams/manage-apps" target="_blank" rel="noopener">Microsoft documentation</a></div>
@@ -1358,10 +1358,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Blocking" data-text="20 verify that microsoft search is enabled and working sharepoint manual verification required (no public api)">
+<article class="item" data-status="manual" data-priority="Blocking" data-text="20 check that microsoft search is enabled and working sharepoint manual verification required (no public api)">
   <header class="item-head">
     <span class="item-id">#20</span>
-    <h3>Verify that Microsoft Search is enabled and working</h3>
+    <h3>Check that Microsoft Search is enabled and working</h3>
     <span class="badge badge-manual">Manual</span>
     <span class="prio prio-blocking">Blocking</span>
   </header>
@@ -1379,10 +1379,10 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommended" data-text="21 verify that nocrawl is disabled on critical sites sharepoint manual verification required (no public api)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="21 check that nocrawl is disabled on critical sites sharepoint manual verification required (no public api)">
   <header class="item-head">
     <span class="item-id">#21</span>
-    <h3>Verify that NoCrawl is disabled on critical sites</h3>
+    <h3>Check that NoCrawl is disabled on critical sites</h3>
     <span class="badge badge-manual">Manual</span>
     <span class="prio prio-recommended">Recommended</span>
   </header>
@@ -1394,16 +1394,16 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     <details class="more">
       <summary>Why and how to configure</summary>
       <div class="block"><span class="block-title">Why</span>The NoCrawl setting excludes a SharePoint site entirely from the Microsoft Search index. Every document on that site then becomes invisible to Copilot: however much read permission the user holds, Copilot cannot find or cite those files in its answers. This setting is often turned on by mistake during migrations from SharePoint on-premises or when test sites are created. Without a check, critical sites holding project documents, internal procedures or knowledge bases can be entirely absent from Copilot&#39;s answers, which sharply degrades the perceived value of the service.</div>
-      <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://admin.cloud.microsoft &gt; Admin centres &gt; SharePoint<br>   (or https://&lt;tenant&gt;-admin.sharepoint.com)<br>2. Sites &gt; Active sites<br>3. For each critical site (HR, Finance, Projects): click &gt; Properties<br>4. Check that indexing is enabled<br>--- OR via PnP PowerShell ---<br>1. Connect-PnPOnline -Url https://tenant.sharepoint.com/sites/SiteCritique -Interactive<br>2. Get-PnPWeb -Includes NoCrawl<br>3. If NoCrawl = True: Set-PnPWeb -NoCrawl $false</div>
+      <div class="block"><span class="block-title">Where and how to configure</span>1. Open https://admin.cloud.microsoft &gt; Admin centres &gt; SharePoint<br>   (or https://&lt;tenant&gt;-admin.sharepoint.com)<br>2. Sites &gt; Active sites<br>3. For each critical site (HR, Finance, Projects): click &gt; Properties<br>4. Check that indexing is enabled<br>--- OR via PnP PowerShell ---<br>1. Connect-PnPOnline -Url https://tenant.sharepoint.com/sites/CriticalSite -Interactive<br>2. Get-PnPWeb -Includes NoCrawl<br>3. If NoCrawl = True: Set-PnPWeb -NoCrawl $false</div>
       <div class="block"><span class="block-title">Verification command</span><code>Connect-PnPOnline -Url &lt;siteUrl&gt; -Interactive; Get-PnPWeb -Includes NoCrawl</code></div>
       <div class="block"><a href="https://learn.microsoft.com/sharepoint/crawl-site-content" target="_blank" rel="noopener">Microsoft documentation</a></div>
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Recommended" data-text="22 verify the restricted sharepoint search configuration sharepoint gap against the expected value">
+<article class="item" data-status="ko" data-priority="Recommended" data-text="22 check the restricted sharepoint search configuration sharepoint gap against the expected value">
   <header class="item-head">
     <span class="item-id">#22</span>
-    <h3>Verify the Restricted SharePoint Search configuration</h3>
+    <h3>Check the Restricted SharePoint Search configuration</h3>
     <span class="badge badge-ko">Non-compliant</span>
     <span class="prio prio-recommended">Recommended</span>
   </header>
@@ -1444,7 +1444,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </article>
 </section>
 
-<footer>Report generated by <strong>Copilot Check Engine</strong> on 15-08-2026 13:20 &mdash; baseline: Microsoft 365 Copilot - Tenant configuration checklist v2.0. A &ldquo;Manual&rdquo; status marks requirements with no public API: they must be validated by hand.</footer>
+<footer>Report generated by <strong>Copilot Check Engine</strong> on 15-08-2026 13:54 &mdash; baseline: Microsoft 365 Copilot - Tenant configuration checklist v2.0. A &ldquo;Manual&rdquo; status marks requirements with no public API: they must be validated by hand.</footer>
 
 </div>
 <script>(function () {
