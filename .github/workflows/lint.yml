@@ -1,0 +1,72 @@
+name: Lint et test de fumee
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: PSScriptAnalyzer + generation de rapport
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer les modules
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer, ImportExcel -Scope CurrentUser -Force
+
+      - name: Verifier la syntaxe de tous les scripts
+        shell: pwsh
+        run: |
+          $failed = $false
+          Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors)
+            if ($errors) {
+              $failed = $true
+              Write-Host "::error file=$($_.FullName)::$($errors[0].Message)"
+            }
+          }
+          if ($failed) { exit 1 }
+
+      - name: PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          # Regles exclues volontairement :
+          #  - PSAvoidUsingWriteHost            : la restitution console est un livrable de l'outil
+          #  - PSReviewUnusedParameter          : toutes les fonctions Invoke-CceCheckNN partagent la meme
+          #                                       signature -Context, y compris les controles manuels
+          #  - PSUseSingularNouns               : Connect-CceServices / Get-CceStatistics agissent sur des collections
+          #  - PSUseShouldProcess*              : le moteur est strictement en lecture seule
+          #  - PSAvoidUsingPlainText* / ConvertTo-SecureString : requis par l'authentification app-only par secret
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error, Warning `
+            -ExcludeRule PSAvoidUsingWriteHost, PSReviewUnusedParameter, PSUseSingularNouns,
+                         PSUseShouldProcessForStateChangingFunctions, PSAvoidUsingPlainTextForPassword,
+                         PSAvoidUsingConvertToSecureStringWithPlainText
+          if ($results) {
+            $results | Format-Table -AutoSize | Out-String | Write-Host
+            if ($results | Where-Object Severity -eq 'Error') { exit 1 }
+          }
+
+      - name: Test de fumee (exports XLSX + HTML sans tenant)
+        shell: pwsh
+        run: |
+          ./tools/New-CceDemoReport.ps1 -OutputPath ./ci-output
+          foreach ($f in 'CopilotCheck_demo.xlsx', 'CopilotCheck_demo.html') {
+            $path = Join-Path ./ci-output $f
+            if (-not (Test-Path $path)) { throw "Rapport manquant : $f" }
+            if ((Get-Item $path).Length -lt 10KB) { throw "Rapport suspect (trop petit) : $f" }
+            Write-Host "OK $f ($([math]::Round((Get-Item $path).Length / 1KB)) Ko)"
+          }
+
+      - name: Publier les rapports de demonstration
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-demo
+          path: ci-output/

@@ -1,0 +1,23 @@
+# Rapports generes sur un tenant reel : ne jamais versionner (donnees clientes)
+output/
+CopilotCheck_*.xlsx
+CopilotCheck_*.html
+CopilotCheck_*.json
+
+# Exceptions : exemples anonymises publies volontairement
+!samples/CopilotCheck_demo.xlsx
+!samples/CopilotCheck_demo.html
+
+# PowerShell / editeurs
+*.log
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Artefacts systeme
+*.stackdump
+
+# Classeur de reference interne : non publie (depot public)
+Copilot_Config_Checklist.xlsx
