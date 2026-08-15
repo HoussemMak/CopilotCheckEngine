@@ -54,15 +54,31 @@ jobs:
             if ($results | Where-Object Severity -eq 'Error') { exit 1 }
           }
 
-      - name: Test de fumee (exports XLSX + HTML sans tenant)
+      - name: Validation i18n (cles, placeholders, catalogues)
+        shell: pwsh
+        run: ./tools/Test-CceI18n.ps1
+
+      - name: Execution a vide des 59 controles (fr + en)
+        shell: pwsh
+        run: ./tools/Test-CceChecks.ps1
+
+      - name: Test de fumee (exports XLSX + HTML sans tenant, fr + en)
         shell: pwsh
         run: |
-          ./tools/New-CceDemoReport.ps1 -OutputPath ./ci-output
-          foreach ($f in 'CopilotCheck_demo.xlsx', 'CopilotCheck_demo.html') {
+          ./tools/New-CceDemoReport.ps1 -Language fr -OutputPath ./ci-output
+          ./tools/New-CceDemoReport.ps1 -Language en -OutputPath ./ci-output
+          $expected = 'CopilotCheck_demo.xlsx', 'CopilotCheck_demo.html',
+                      'CopilotCheck_demo.en.xlsx', 'CopilotCheck_demo.en.html'
+          foreach ($f in $expected) {
             $path = Join-Path ./ci-output $f
             if (-not (Test-Path $path)) { throw "Rapport manquant : $f" }
             if ((Get-Item $path).Length -lt 10KB) { throw "Rapport suspect (trop petit) : $f" }
             Write-Host "OK $f ($([math]::Round((Get-Item $path).Length / 1KB)) Ko)"
+          }
+          # Un marqueur [[cle]] dans un rapport trahit une ressource de langue manquante.
+          foreach ($f in 'CopilotCheck_demo.html', 'CopilotCheck_demo.en.html') {
+            $content = Get-Content (Join-Path ./ci-output $f) -Raw
+            if ($content -match '\[\[[a-z0-9.]+\]\]') { throw "Ressource manquante dans $f : $($Matches[0])" }
           }
 
       - name: Publier les rapports de demonstration

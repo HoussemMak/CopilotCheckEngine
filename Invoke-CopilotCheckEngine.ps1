@@ -41,6 +41,11 @@
     Sous-ensemble de services a interroger. Les controles portes par un service
     non selectionne sont marques « Non evalue ».
 
+.PARAMETER Language
+    Langue des rapports : 'fr' (defaut) ou 'en'. Pilote le referentiel charge
+    (data/checklist-catalog[.en].json) et l'ensemble des libelles.
+    Report language: 'fr' (default) or 'en'.
+
 .PARAMETER OutputPath
     Repertoire de sortie des rapports. Defaut : .\output
 
@@ -74,6 +79,11 @@
 
     Audit partiel limite a Microsoft Graph et Microsoft Teams.
 
+.EXAMPLE
+    .\Invoke-CopilotCheckEngine.ps1 -TenantId contoso.onmicrosoft.com -Language en -OpenReport
+
+    Rapports en anglais. / English reports.
+
 .NOTES
     Lecture seule. Aucune commande de modification n'est appelee.
 #>
@@ -90,8 +100,11 @@ param(
     [ValidateSet('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams')]
     [string[]] $Services = @('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams'),
 
+    [ValidateSet('fr', 'en')]
+    [string] $Language = 'fr',
+
     [string] $OutputPath = (Join-Path $PSScriptRoot 'output'),
-    [string] $CatalogPath = (Join-Path $PSScriptRoot 'data\checklist-catalog.json'),
+    [string] $CatalogPath,
 
     [switch] $IncludeLocalChecks,
     [int]    $MailboxSampleSize = 100,
@@ -113,8 +126,20 @@ foreach ($folder in 'Private', 'Checks', 'Export') {
         ForEach-Object { . $_.FullName }
 }
 
+# Ressources de langue : a charger avant tout appel a T.
+$langInfo = Import-CceStrings -Language $Language -DataPath (Join-Path $PSScriptRoot 'data')
+
+if (-not $CatalogPath) {
+    $CatalogPath = if ($Language -eq 'fr') {
+        Join-Path $PSScriptRoot 'data\checklist-catalog.json'
+    }
+    else {
+        Join-Path $PSScriptRoot "data\checklist-catalog.$Language.json"
+    }
+}
+
 if (-not (Test-Path $CatalogPath)) {
-    throw "Catalogue introuvable : $CatalogPath. Executer tools\Convert-XlsxToCatalog.ps1 pour le regenerer."
+    throw ((T 'cli.catalog.missing') -f $CatalogPath)
 }
 
 $catalog = Get-Content -Path $CatalogPath -Raw -Encoding utf8 | ConvertFrom-Json
@@ -133,14 +158,15 @@ $Context = $script:CceContext
 
 Write-Host ''
 Write-Host '  Copilot Check Engine' -ForegroundColor Cyan
-Write-Host ('  {0} v{1} - {2} exigences' -f $catalog.title, $catalog.version, $catalog.itemCount) -ForegroundColor DarkGray
+Write-Host ('  ' + ((T 'cli.catalog') -f $catalog.title, $catalog.version, $catalog.itemCount)) -ForegroundColor DarkGray
+Write-Host ('  ' + ((T 'cli.lang.loaded') -f $langInfo.Language.ToUpper(), $langInfo.Loaded)) -ForegroundColor DarkGray
 Write-Host ''
 
 # ---------------------------------------------------------------------------
 # Connexions
 # ---------------------------------------------------------------------------
 if ($SkipConnect) {
-    Write-CceLog 'Reutilisation des sessions existantes (-SkipConnect)' -Level INFO
+    Write-CceLog (T 'cli.reuse') -Level INFO
 
     foreach ($svc in @($Context.Services.Keys)) {
         if ($svc -notin $Services) { continue }
@@ -151,7 +177,7 @@ if ($SkipConnect) {
             'SharePoint' { { $null -ne (Get-SPOTenant -ErrorAction Stop) } }
             'Teams'      { { $null -ne (Get-CsTeamsMeetingPolicy -Identity Global -ErrorAction Stop) } }
         }
-        $Context.Services.$svc = [bool] (Get-CceSafe $probe -What "sonde $svc")
+        $Context.Services.$svc = [bool] (Get-CceSafe $probe -What ((T 'conn.probe') -f $svc))
     }
 
     if ($Context.Services.Graph) {
@@ -179,14 +205,14 @@ else {
 }
 
 if (-not ($Context.Services.Values -contains $true)) {
-    throw "Aucun service n'a pu etre contacte : verifier les identifiants, les droits et la connectivite."
+    throw (T 'cli.noservice')
 }
 
 # ---------------------------------------------------------------------------
 # Execution des controles
 # ---------------------------------------------------------------------------
 Write-Host ''
-Write-CceLog ("Execution des {0} controles..." -f $catalog.itemCount) -Level STEP
+Write-CceLog ((T 'cli.running') -f $catalog.itemCount) -Level STEP
 
 $results = [System.Collections.Generic.List[object]]::new()
 $index = 0
@@ -205,25 +231,31 @@ foreach ($item in $catalog.items) {
         }
         catch {
             $outcome = New-CceResult -Status 'Non evalue' `
-                -Observed 'Erreur pendant le controle' `
+                -Observed (T 'cli.check.error.obs') `
                 -Evidence $_.Exception.Message `
-                -Remediation "Consulter l'onglet Journal et relancer le controle isolement."
-            Write-CceLog ("Controle {0} en erreur : {1}" -f $item.Id, $_.Exception.Message) -Level ERROR
+                -Remediation (T 'cli.check.error.rem')
+            Write-CceLog ((T 'cli.check.error') -f $item.Id, $_.Exception.Message) -Level ERROR
         }
     }
     else {
         $outcome = New-CceResult -Status 'Non evalue' `
-            -Observed 'Controle non implemente' `
-            -Evidence "Aucune fonction $functionName dans src\Checks."
+            -Observed (T 'cli.check.missing.obs') `
+            -Evidence ((T 'cli.check.missing.ev') -f $functionName)
     }
+
+    # Le catalogue est localise : on conserve le libelle tel quel pour l'affichage
+    # et on derive le jeton canonique pour toute la logique de calcul.
+    $priorityToken = ConvertTo-CceCanonicalPriority -Priority $item.Priority
 
     $results.Add([pscustomobject]@{
         Id                   = $item.Id
         Section              = $item.Section
         Categorie            = $item.Category
         Requirement          = $item.Requirement
-        Priorite             = $item.Priority
+        Priorite             = $priorityToken
+        PrioriteLibelle      = Get-CcePriorityLabel -Priority $priorityToken
         Statut               = $outcome.Status
+        StatutLibelle        = Get-CceStatusLabel -Status $outcome.Status
         ValeurConstatee      = $outcome.Observed
         ValeurAttendue       = $item.Expected
         ActionCorrective     = $outcome.Remediation
@@ -249,10 +281,10 @@ elseif ($Context.Tenant.Id) { $Context.Tenant.Id }
 else { 'tenant' }
 
 $stamp = $Context.StartedAt.ToString('yyyyMMdd-HHmmss')
-$base = Join-Path $OutputPath ("CopilotCheck_{0}_{1}" -f $slug, $stamp)
+$base = Join-Path $OutputPath ("CopilotCheck_{0}_{1}_{2}" -f $slug, $Language, $stamp)
 
 Write-Host ''
-Write-CceLog 'Generation des rapports...' -Level STEP
+Write-CceLog (T 'cli.reports') -Level STEP
 
 $xlsxPath = Export-CceExcel -Results $results -Context $Context -Path "$base.xlsx"
 $htmlPath = Export-CceHtml  -Results $results -Context $Context -Path "$base.html"
@@ -261,12 +293,13 @@ $jsonPath = "$base.json"
 [pscustomobject]@{
     tenant     = $Context.Tenant
     generated  = $Context.StartedAt
+    language   = $Language
     catalog    = @{ title = $catalog.title; version = $catalog.version; items = $catalog.itemCount }
     services   = $Context.Services
     statistics = Get-CceStatistics -Results $results
     results    = $results
 } | ConvertTo-Json -Depth 8 | Set-Content -Path $jsonPath -Encoding utf8
-Write-CceLog "Export JSON : $jsonPath" -Level OK
+Write-CceLog ((T 'cli.export.json') -f $jsonPath) -Level OK
 
 # ---------------------------------------------------------------------------
 # Restitution console
@@ -275,20 +308,22 @@ $stats = Get-CceStatistics -Results $results
 
 Write-Host ''
 Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
-Write-Host ('  Tenant                     : {0}' -f $(if ($Context.Tenant.Name) { $Context.Tenant.Name } else { $Context.Tenant.Id }))
-Write-Host ('  Exigences controlees       : {0}' -f $stats.Total)
-Write-Host ('  Conformes                  : {0}' -f $stats.Conforme)          -ForegroundColor Green
-Write-Host ('  Non conformes              : {0}' -f $stats.NonConforme)       -ForegroundColor Red
-Write-Host ('  Points d''attention         : {0}' -f $stats.Attention)        -ForegroundColor Yellow
-Write-Host ('  Verification manuelle      : {0}' -f $stats.Manuel)            -ForegroundColor Cyan
-Write-Host ('  Non evalues                : {0}' -f $stats.NonEvalue)         -ForegroundColor DarkGray
-Write-Host ('  Taux de conformite         : {0} %' -f $stats.TauxConformite)  -ForegroundColor Cyan
-Write-Host ('  Bloquants non conformes    : {0}' -f $stats.BloquantsKo.Count) -ForegroundColor $(if ($stats.BloquantsKo.Count -gt 0) { 'Red' } else { 'Green' })
+$line = { param($label, $value, $color) Write-Host ('  {0,-34} : {1}' -f $label, $value) -ForegroundColor $color }
+
+& $line (T 'sum.tenant')       $(if ($Context.Tenant.Name) { $Context.Tenant.Name } else { $Context.Tenant.Id }) 'White'
+& $line (T 'sum.total')        $stats.Total          'White'
+& $line (T 'sum.compliant')    $stats.Conforme       'Green'
+& $line (T 'sum.noncompliant') $stats.NonConforme    'Red'
+& $line (T 'sum.warning')      $stats.Attention      'Yellow'
+& $line (T 'sum.manual')       $stats.Manuel         'Cyan'
+& $line (T 'sum.notevaluated') $stats.NonEvalue      'DarkGray'
+& $line (T 'sum.rate')         $stats.TauxConformite 'Cyan'
+& $line (T 'sum.blockingko')   $stats.BloquantsKo.Count $(if ($stats.BloquantsKo.Count -gt 0) { 'Red' } else { 'Green' })
 Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
 
 if ($stats.BloquantsKo.Count -gt 0) {
     Write-Host ''
-    Write-Host '  Exigences bloquantes a traiter en priorite :' -ForegroundColor Red
+    Write-Host ('  ' + (T 'cli.blocking.header')) -ForegroundColor Red
     foreach ($b in $stats.BloquantsKo) {
         Write-Host ('   #{0,-3} {1}' -f $b.Id, $b.Requirement) -ForegroundColor Red
     }

@@ -17,7 +17,7 @@ function Get-CceMailboxSample {
     $result = [System.Collections.Generic.List[object]]::new()
 
     if ($users.Count -gt 0) {
-        Write-CceLog ("Analyse de {0} boite(s) aux lettres Copilot..." -f $users.Count) -Level INFO
+        Write-CceLog ((T 'collect.exo.mailboxes') -f $users.Count) -Level INFO
         foreach ($u in $users) {
             $mbx = Get-CceSafe { Get-Mailbox -Identity $u.UserPrincipalName -ErrorAction Stop } -What "Get-Mailbox $($u.UserPrincipalName)"
             if ($mbx) {
@@ -60,8 +60,8 @@ function Invoke-CceCheck24 {
 
     $sample = Get-CceMailboxSample -Context $Context
     if (-not $sample -or $sample.Count -eq 0) {
-        return New-CceResult -Status 'Non evalue' -Observed 'Aucune boite aux lettres analysable' `
-            -Evidence 'Aucun utilisateur licencie Copilot et aucun resultat Get-Mailbox.'
+        return New-CceResult -Status 'Non evalue' -Observed (T 'c24.obs.none') `
+            -Evidence (T 'c24.ev.none')
     }
 
     $groups = $sample | Group-Object RecipientTypeDetails | Sort-Object Count -Descending
@@ -71,14 +71,14 @@ function Invoke-CceCheck24 {
 
     if ($onPrem.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("{0} boite(s) analysee(s) : {1}" -f $sample.Count, $observed) `
+            -Observed ((T 'c24.obs.ok') -f $sample.Count, $observed) `
             -Evidence ($groups | ForEach-Object { "$($_.Name) : $($_.Count)" } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Non conforme' `
-        -Observed ("{0} boite(s) hors Exchange Online sur {1} analysee(s) : {2}" -f $onPrem.Count, $sample.Count, $observed) `
+        -Observed ((T 'c24.obs.ko') -f $onPrem.Count, $sample.Count, $observed) `
         -Evidence ($onPrem | ForEach-Object { "$($_.Upn) : $($_.RecipientTypeDetails)" } | ConvertTo-CceText) `
-        -Remediation "Migrer ces boites vers Exchange Online : Copilot ne peut pas indexer une boite restee on-premises."
+        -Remediation (T 'c24.rem.ko')
 }
 
 function Invoke-CceCheck25 {
@@ -89,7 +89,7 @@ function Invoke-CceCheck25 {
 
     $sample = @(Get-CceMailboxSample -Context $Context | Where-Object { $_.Identity })
     if ($sample.Count -eq 0) {
-        return New-CceResult -Status 'Non evalue' -Observed 'Aucune boite aux lettres analysable' -Evidence 'Echantillon vide.'
+        return New-CceResult -Status 'Non evalue' -Observed (T 'c25.obs.none') -Evidence (T 'c25.ev.none')
     }
 
     $disabled = [System.Collections.Generic.List[string]]::new()
@@ -101,12 +101,12 @@ function Invoke-CceCheck25 {
 
     if ($disabled.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("MAPI actif sur les {0} boite(s) analysee(s)" -f $sample.Count) `
-            -Evidence "Aucune boite avec MAPIEnabled = False dans l'echantillon."
+            -Observed ((T 'c25.obs.ok') -f $sample.Count) `
+            -Evidence (T 'c25.ev.ok')
     }
 
     New-CceResult -Status 'Non conforme' `
-        -Observed ("{0} boite(s) avec MAPI desactive sur {1} analysee(s)" -f $disabled.Count, $sample.Count) `
+        -Observed ((T 'c25.obs.ko') -f $disabled.Count, $sample.Count) `
         -Evidence ($disabled | ConvertTo-CceText) `
         -Remediation "Set-CASMailbox -Identity <upn> -MAPIEnabled `$true"
 }
@@ -130,7 +130,5 @@ function Invoke-CceCheck26 {
 
     New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Non conforme' }) `
         -Observed $observed -Evidence $observed `
-        -Remediation $(if ($ok) { '' } else {
-            "Activer l'audit : Set-AdminAuditLogConfig -UnifiedAuditLogIngestionEnabled `$true ; Set-OrganizationConfig -AuditDisabled `$false"
-        })
+        -Remediation $(if ($ok) { '' } else { T 'c26.rem.ko' })
 }

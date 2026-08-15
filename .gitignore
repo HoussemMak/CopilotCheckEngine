@@ -7,6 +7,8 @@ CopilotCheck_*.json
 # Exceptions : exemples anonymises publies volontairement
 !samples/CopilotCheck_demo.xlsx
 !samples/CopilotCheck_demo.html
+!samples/CopilotCheck_demo.en.xlsx
+!samples/CopilotCheck_demo.en.html
 
 # PowerShell / editeurs
 *.log

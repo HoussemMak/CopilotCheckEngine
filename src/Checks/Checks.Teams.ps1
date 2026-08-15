@@ -41,22 +41,22 @@ function Invoke-CceCheck27 {
 
     if ($mode -eq 'BlockedAppList' -and $blockedCopilot.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed "$observed - aucune application Copilot bloquee" `
-            -Evidence ("Applications Copilot du catalogue detectees : " + (($copilotApps.displayName) -join ', '))
+            -Observed ((T 'c27.obs.ok') -f $observed) `
+            -Evidence ((T 'c27.ev.ok') -f (($copilotApps.displayName) -join ', '))
     }
 
     if ($blockedCopilot.Count -gt 0) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed "$observed - application Copilot explicitement bloquee" `
-            -Evidence ($blockedCopilot | ForEach-Object { "Bloquee : $($_.Id)" } | ConvertTo-CceText) `
-            -Remediation "Retirer l'application Copilot de la liste bloquee dans la strategie d'autorisation d'applications Teams."
+            -Observed ((T 'c27.obs.ko') -f $observed) `
+            -Evidence ($blockedCopilot | ForEach-Object { (T 'c27.ev.line.blocked') -f $_.Id } | ConvertTo-CceText) `
+            -Remediation (T 'c27.rem.ko')
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed "$observed - strategie en liste blanche : verifier que Copilot y figure" `
-        -Evidence (@("Applications Copilot du catalogue : " + (($copilotApps.displayName) -join ', ')) +
-                   @($blocked | ForEach-Object { "Entree strategie : $($_.Id)" }) | ConvertTo-CceText) `
-        -Remediation "La strategie fonctionne en liste d'autorisation : ajouter explicitement Microsoft 365 Copilot aux applications autorisees."
+        -Observed ((T 'c27.obs.warn') -f $observed) `
+        -Evidence (@((T 'c27.ev.warn.header') -f (($copilotApps.displayName) -join ', ')) +
+                   @($blocked | ForEach-Object { (T 'c27.ev.warn.line') -f $_.Id }) | ConvertTo-CceText) `
+        -Remediation (T 'c27.rem.warn')
 }
 
 function Invoke-CceCheck28 {
@@ -76,22 +76,22 @@ function Invoke-CceCheck28 {
 
     if ($copilotIds.Count -eq 0) {
         return New-CceResult -Status 'Manuel' `
-            -Observed ("{0} application(s) epinglee(s) - catalogue Copilot non resolu" -f $pinned.Count) `
-            -Evidence ($pinned | ForEach-Object { "$($_.Id) (ordre $($_.Order))" } | ConvertTo-CceText) `
-            -Remediation "Verifier dans le centre d'administration Teams que Microsoft 365 Copilot est epingle dans la strategie de configuration d'applications."
+            -Observed ((T 'c28.obs.manual') -f $pinned.Count) `
+            -Evidence ($pinned | ForEach-Object { (T 'c28.ev.line.order') -f $_.Id, $_.Order } | ConvertTo-CceText) `
+            -Remediation (T 'c28.rem.manual')
     }
 
     if ($pinnedCopilot.Count -gt 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("Copilot epingle ({0} application(s) epinglee(s) au total)" -f $pinned.Count) `
-            -Evidence ($pinnedCopilot | ForEach-Object { "Epinglee : $($_.Id)" } | ConvertTo-CceText)
+            -Observed ((T 'c28.obs.ok') -f $pinned.Count) `
+            -Evidence ($pinnedCopilot | ForEach-Object { (T 'c28.ev.line.pinned') -f $_.Id } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Non conforme' `
-        -Observed ("Copilot non epingle ({0} application(s) epinglee(s))" -f $pinned.Count) `
-        -Evidence (@("Applications Copilot disponibles : " + (($copilotApps.displayName) -join ', ')) +
-                   @($pinned | ForEach-Object { "Epinglee : $($_.Id)" }) | ConvertTo-CceText) `
-        -Remediation "Ajouter Microsoft 365 Copilot aux applications epinglees de la strategie de configuration globale Teams."
+        -Observed ((T 'c28.obs.ko') -f $pinned.Count) `
+        -Evidence (@((T 'c28.ev.ko.header') -f (($copilotApps.displayName) -join ', ')) +
+                   @($pinned | ForEach-Object { (T 'c28.ev.line.pinned') -f $_.Id }) | ConvertTo-CceText) `
+        -Remediation (T 'c28.rem.ko')
 }
 
 function Invoke-CceCheck29 {
@@ -104,9 +104,9 @@ function Invoke-CceCheck29 {
     $value = [bool] $policy.AllowTranscription
 
     New-CceResult -Status $(if ($value) { 'Conforme' } else { 'Non conforme' }) `
-        -Observed ("AllowTranscription = {0} (strategie Global)" -f $value) `
-        -Evidence "Get-CsTeamsMeetingPolicy -Identity Global : AllowTranscription = $value" `
-        -Remediation $(if ($value) { '' } else { "Set-CsTeamsMeetingPolicy -Identity Global -AllowTranscription `$true (prerequis des resumes de reunion Copilot)" })
+        -Observed ((T 'c29.obs.default') -f $value) `
+        -Evidence ((T 'c29.ev.default') -f $value) `
+        -Remediation $(if ($value) { '' } else { T 'c29.rem.ko' })
 }
 
 function Invoke-CceCheck30 {
@@ -119,8 +119,8 @@ function Invoke-CceCheck30 {
     $value = [bool] $policy.AllowCloudRecording
 
     New-CceResult -Status $(if ($value) { 'Conforme' } else { 'Attention' }) `
-        -Observed ("AllowCloudRecording = {0} (strategie Global)" -f $value) `
-        -Evidence "Get-CsTeamsMeetingPolicy -Identity Global : AllowCloudRecording = $value" `
+        -Observed ((T 'c30.obs.default') -f $value) `
+        -Evidence ((T 'c30.ev.default') -f $value) `
         -Remediation $(if ($value) { '' } else { "Set-CsTeamsMeetingPolicy -Identity Global -AllowCloudRecording `$true" })
 }
 
@@ -135,9 +135,9 @@ function Invoke-CceCheck31 {
 
     if ([string]::IsNullOrWhiteSpace($mode)) {
         return New-CceResult -Status 'Non evalue' `
-            -Observed 'Propriete CopilotMode absente de la strategie' `
-            -Evidence "La strategie Global ne remonte pas CopilotMode (module MicrosoftTeams a mettre a jour ou tenant sans Copilot)." `
-            -Remediation "Mettre a jour le module MicrosoftTeams puis verifier CopilotMode."
+            -Observed (T 'c31.obs.na') `
+            -Evidence (T 'c31.ev.na') `
+            -Remediation (T 'c31.rem.na')
     }
 
     $status = switch -Regex ($mode) {
@@ -148,8 +148,8 @@ function Invoke-CceCheck31 {
     }
 
     New-CceResult -Status $status `
-        -Observed ("CopilotMode = {0} (strategie Global)" -f $mode) `
-        -Evidence "Get-CsTeamsMeetingPolicy -Identity Global : CopilotMode = $mode" `
+        -Observed ((T 'c31.obs.default') -f $mode) `
+        -Evidence ((T 'c31.ev.default') -f $mode) `
         -Remediation $(if ($status -eq 'Conforme') { '' } else { "Set-CsTeamsMeetingPolicy -Identity Global -CopilotMode Enabled" })
 }
 
@@ -165,7 +165,7 @@ function Invoke-CceCheck32 {
     $ok = $cart -or ($live -match 'Enabled')
 
     New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Attention' }) `
-        -Observed ("AllowCartCaptions = {0} | LiveCaptionsEnabledType = {1}" -f $cart, $live) `
-        -Evidence "Get-CsTeamsMeetingPolicy -Identity Global : AllowCartCaptions = $cart, LiveCaptionsEnabledType = $live" `
+        -Observed ((T 'c32.obs.default') -f $cart, $live) `
+        -Evidence ((T 'c32.ev.default') -f $cart, $live) `
         -Remediation $(if ($ok) { '' } else { "Set-CsTeamsMeetingPolicy -Identity Global -LiveCaptionsEnabledType EnabledUserOverride" })
 }

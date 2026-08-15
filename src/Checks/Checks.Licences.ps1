@@ -14,13 +14,13 @@ function Invoke-CceCheck01 {
 
     if (-not $base) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed 'Aucun SKU E3 / E5 / Business Premium avec des licences attribuees' `
+            -Observed (T 'c01.obs.none') `
             -Evidence (Get-CceSubscribedSku -Context $Context |
-                ForEach-Object { "$($_.SkuPartNumber) : $($_.ConsumedUnits) attribuee(s)" } | ConvertTo-CceText) `
-            -Remediation "Acquerir et attribuer une licence M365 E3, E5 ou Business Premium aux utilisateurs cibles Copilot."
+                ForEach-Object { (T 'c01.ev.line') -f $_.SkuPartNumber, $_.ConsumedUnits } | ConvertTo-CceText) `
+            -Remediation (T 'c01.rem.none')
     }
 
-    $detail = $base | ForEach-Object { "$($_.SkuPartNumber) : $($_.ConsumedUnits)/$($_.PrepaidUnits.Enabled) attribuee(s)" }
+    $detail = $base | ForEach-Object { (T 'c01.obs.line') -f $_.SkuPartNumber, $_.ConsumedUnits, $_.PrepaidUnits.Enabled }
 
     New-CceResult -Status 'Conforme' `
         -Observed ($detail -join ' | ') `
@@ -37,23 +37,23 @@ function Invoke-CceCheck02 {
 
     if (-not $copilot) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed 'Aucun SKU Copilot present sur le tenant' `
-            -Evidence 'Aucun SkuPartNumber correspondant a *COPILOT* dans Get-MgSubscribedSku.' `
-            -Remediation "Acheter l'abonnement Microsoft 365 Copilot depuis admin.cloud.microsoft > Facturation > Services d'achat."
+            -Observed (T 'c02.obs.none') `
+            -Evidence (T 'c02.ev.none') `
+            -Remediation (T 'c02.rem.none')
     }
 
     $lines = $copilot | ForEach-Object {
         $available = $_.PrepaidUnits.Enabled - $_.ConsumedUnits
-        "$($_.SkuPartNumber) : $($_.ConsumedUnits)/$($_.PrepaidUnits.Enabled) utilisee(s), $available disponible(s)"
+        (T 'c02.obs.line') -f $_.SkuPartNumber, $_.ConsumedUnits, $_.PrepaidUnits.Enabled, $available
     }
 
     $totalAvailable = ($copilot | ForEach-Object { $_.PrepaidUnits.Enabled - $_.ConsumedUnits } | Measure-Object -Sum).Sum
 
     if ($totalAvailable -le 0) {
         return New-CceResult -Status 'Attention' `
-            -Observed ("SKU Copilot present mais 0 licence disponible ({0})" -f ($lines -join ' | ')) `
+            -Observed ((T 'c02.obs.warn') -f ($lines -join ' | ')) `
             -Evidence ($lines | ConvertTo-CceText) `
-            -Remediation "Toutes les licences Copilot sont consommees : prevoir des unites supplementaires avant d'onboarder de nouveaux utilisateurs."
+            -Remediation (T 'c02.rem.warn')
     }
 
     New-CceResult -Status 'Conforme' -Observed ($lines -join ' | ') -Evidence ($lines | ConvertTo-CceText)
@@ -69,17 +69,17 @@ function Invoke-CceCheck03 {
 
     if (-not $users -or $users.Count -eq 0) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed '0 utilisateur porteur d''une licence Copilot' `
-            -Evidence 'Aucun utilisateur ne possede de licence Copilot assignee.' `
-            -Remediation "Attribuer la licence Copilot aux utilisateurs cibles (de preference via un groupe Entra ID)."
+            -Observed (T 'c03.obs.none') `
+            -Evidence (T 'c03.ev.none') `
+            -Remediation (T 'c03.rem.none')
     }
 
     $enabled = @($users | Where-Object { $_.AccountEnabled })
 
     New-CceResult -Status 'Conforme' `
-        -Observed ("{0} utilisateur(s) licencie(s) Copilot, dont {1} compte(s) actif(s)" -f $users.Count, $enabled.Count) `
+        -Observed ((T 'c03.obs.ok') -f $users.Count, $enabled.Count) `
         -Evidence ($users | Select-Object -First 25 |
-            ForEach-Object { "$($_.UserPrincipalName) (actif=$($_.AccountEnabled), type=$($_.UserType))" } | ConvertTo-CceText -MaxItems 25)
+            ForEach-Object { (T 'c03.ev.line') -f $_.UserPrincipalName, $_.AccountEnabled, $_.UserType } | ConvertTo-CceText -MaxItems 25)
 }
 
 function Invoke-CceCheck04 {
@@ -91,8 +91,8 @@ function Invoke-CceCheck04 {
     $skuIds = Get-CceCopilotSkuId -Context $Context
     if (-not $skuIds -or $skuIds.Count -eq 0) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed 'Aucun SKU Copilot : attribution par groupe impossible' `
-            -Remediation "Acheter le SKU Copilot puis creer un groupe de licence dedie."
+            -Observed (T 'c04.obs.none') `
+            -Remediation (T 'c04.rem.none')
     }
 
     $groups = [System.Collections.Generic.List[object]]::new()
@@ -104,13 +104,13 @@ function Invoke-CceCheck04 {
 
     if ($groups.Count -eq 0) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed "Aucun groupe Entra ID ne porte la licence Copilot (attribution manuelle)" `
-            -Evidence "Aucun groupe ne possede la licence Copilot dans assignedLicenses." `
-            -Remediation "Creer un groupe de securite (ex. GRP-Copilot-Users) et lui affecter la licence Copilot, puis retirer les attributions individuelles."
+            -Observed (T 'c04.obs.ko') `
+            -Evidence (T 'c04.ev.ko') `
+            -Remediation (T 'c04.rem.ko')
     }
 
     New-CceResult -Status 'Conforme' `
-        -Observed ("{0} groupe(s) porteur(s) de la licence Copilot : {1}" -f $groups.Count, (($groups.displayName) -join ', ')) `
+        -Observed ((T 'c04.obs.ok') -f $groups.Count, (($groups.displayName) -join ', ')) `
         -Evidence ($groups | ForEach-Object { "$($_.displayName) ($($_.id))" } | ConvertTo-CceText)
 }
 
@@ -125,9 +125,9 @@ function Invoke-CceCheck05 {
 
     if (-not $subs -or $subs.Count -eq 0) {
         return New-CceResult -Status 'Non evalue' `
-            -Observed "Cycle de vie de l'abonnement Copilot non lisible via Graph" `
-            -Evidence "L'endpoint beta/directory/subscriptions n'a rien retourne (droits insuffisants ou abonnement absent)." `
-            -Remediation "Verifier manuellement : admin.cloud.microsoft > Facturation > Vos produits > Microsoft 365 Copilot."
+            -Observed (T 'c05.obs.na') `
+            -Evidence (T 'c05.ev.na') `
+            -Remediation (T 'c05.rem.na')
     }
 
     $lines = [System.Collections.Generic.List[string]]::new()
@@ -138,7 +138,7 @@ function Invoke-CceCheck05 {
         $days = if ($next) { [int] ($next - (Get-Date)).TotalDays } else { $null }
         $auto = $s.isAutoRenewEnabled
 
-        $lines.Add(("{0} : statut={1}, renouvellement auto={2}, prochaine echeance={3} ({4} jour(s))" -f `
+        $lines.Add(((T 'c05.obs.line') -f `
             $s.skuPartNumber, $s.status, $auto, ($(if ($next) { $next.ToString('yyyy-MM-dd') } else { 'n/a' })), ($days ?? 'n/a')))
 
         if ($auto -eq $false) { $worst = 'Non conforme' }
@@ -146,8 +146,8 @@ function Invoke-CceCheck05 {
     }
 
     $remediation = switch ($worst) {
-        'Non conforme' { "Reactiver le renouvellement automatique : admin.cloud.microsoft > Facturation > Vos produits > Microsoft 365 Copilot." }
-        'Attention'    { "Echeance a moins de 60 jours : declencher le processus de renouvellement aupres des achats." }
+        'Non conforme' { T 'c05.rem.ko' }
+        'Attention'    { T 'c05.rem.warn' }
         default        { '' }
     }
 

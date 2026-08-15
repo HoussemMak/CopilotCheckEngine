@@ -1,6 +1,8 @@
 # Copilot Check Engine
 
-Genere la checklist de configuration **Microsoft 365 Copilot** deja renseignee avec les donnees reelles du tenant sur lequel le script est execute, et l'exporte en **XLSX**, **HTML** et **JSON**.
+**English: [README.en.md](README.en.md)**
+
+Genere la checklist de configuration **Microsoft 365 Copilot** deja renseignee avec les donnees reelles du tenant sur lequel le script est execute, et l'exporte en **XLSX**, **HTML** et **JSON**, en francais ou en anglais.
 
 Une seule commande : connexion, collecte, evaluation des 59 exigences, production des rapports.
 
@@ -16,9 +18,9 @@ Une seule commande : connexion, collecte, evaluation des 59 exigences, productio
 
 | Sortie | Contenu |
 | --- | --- |
-| `CopilotCheck_<tenant>_<horodatage>.xlsx` | 4 onglets : **Synthese** (indicateurs, taux par priorite et par domaine), **Checklist** (59 lignes, mise en forme conditionnelle, filtres), **Preuves** (donnees brutes collectees), **Journal** (trace d'execution). |
-| `CopilotCheck_<tenant>_<horodatage>.html` | Rapport autonome : jauge de conformite, indicateurs, barres par priorite et par domaine, recherche plein texte, filtres par statut et par priorite, mise en page d'impression. Aucune ressource externe. |
-| `CopilotCheck_<tenant>_<horodatage>.json` | Meme contenu, exploitable en CI ou par un tableau de bord. |
+| `CopilotCheck_<tenant>_<langue>_<horodatage>.xlsx` | 4 onglets : **Synthese** (indicateurs, taux par priorite et par domaine), **Checklist** (59 lignes, mise en forme conditionnelle, filtres), **Preuves** (donnees brutes collectees), **Journal** (trace d'execution). |
+| `CopilotCheck_<tenant>_<langue>_<horodatage>.html` | Rapport autonome : jauge de conformite, indicateurs, barres par priorite et par domaine, recherche plein texte, filtres par statut et par priorite, mise en page d'impression. Aucune ressource externe. |
+| `CopilotCheck_<tenant>_<langue>_<horodatage>.json` | Meme contenu, exploitable en CI ou par un tableau de bord. |
 
 Chaque exigence est restituee avec : la **valeur constatee sur le tenant**, la valeur attendue, l'**action corrective**, la **preuve collectee**, la justification metier, la procedure de configuration, la commande de verification et le lien Microsoft Learn.
 
@@ -116,7 +118,18 @@ Ajoute la lecture du registre ClickToRun (produit Office, canal de mise a jour) 
 ```powershell
 $audit = .\Invoke-CopilotCheckEngine.ps1 -TenantId contoso.onmicrosoft.com -PassThru
 $audit.Statistics.TauxConformite
-$audit.Results | Where-Object { $_.Priorite -eq 'Bloquant' -and $_.Statut -eq 'Non conforme' }
+$audit.Results | Where-Object { $_.Priorite -eq 'Blocking' -and $_.Statut -eq 'NonCompliant' }
+```
+
+`Priorite` et `Statut` portent des **jetons canoniques independants de la langue**
+(`Blocking` / `Recommended` / `Optimal` et `Compliant` / `NonCompliant` / `Warning` / `Manual` / `NotEvaluated`) :
+un script continue de fonctionner quelle que soit la langue du rapport. Les libelles
+affichables se trouvent dans `PrioriteLibelle` et `StatutLibelle`.
+
+### Rapport en anglais
+
+```powershell
+.\Invoke-CopilotCheckEngine.ps1 -TenantId contoso.onmicrosoft.com -Language en -OpenReport
 ```
 
 ### Parametres
@@ -126,6 +139,7 @@ $audit.Results | Where-Object { $_.Priorite -eq 'Bloquant' -and $_.Statut -eq 'N
 | `-TenantId` | Identifiant ou domaine du tenant. |
 | `-AdminUpn` | Compte d'administration pour les connexions interactives Exchange / Purview. |
 | `-ClientId`, `-CertificateThumbprint`, `-ClientSecret`, `-Organization` | Execution non interactive (app-only). |
+| `-Language` | Langue des rapports : `fr` (defaut) ou `en`. |
 | `-SharePointAdminUrl` | Force l'URL d'administration SharePoint (deduite du domaine par defaut sinon). |
 | `-Services` | Sous-ensemble parmi `Graph`, `Exchange`, `Purview`, `SharePoint`, `Teams`. |
 | `-OutputPath` | Repertoire de sortie. Defaut : `.\output`. |
@@ -142,16 +156,39 @@ $audit.Results | Where-Object { $_.Priorite -eq 'Bloquant' -and $_.Statut -eq 'N
 
 ```
 Invoke-CopilotCheckEngine.ps1     Point d'entree : connexions, orchestration, exports
-data/checklist-catalog.json       Referentiel des 59 exigences (source de verite)
-src/Private/                      Noyau : modele de resultat, connexions, collecteurs mutualises
+data/checklist-catalog.json       Referentiel des 59 exigences, francais (source de verite)
+data/checklist-catalog.en.json    Meme referentiel, anglais
+data/strings.fr.json              Gabarits des messages runtime, francais
+data/strings.en.json              Gabarits des messages runtime, anglais
+src/Private/                      Noyau : resultat, connexions, collecteurs, ressources de langue
 src/Checks/                       Un fichier par domaine, une fonction Invoke-CceCheckNN par exigence
 src/Export/                       Exports XLSX et HTML + calcul des statistiques
 tools/Convert-XlsxToCatalog.ps1   Regenere le catalogue depuis le classeur de reference
-tools/New-CceCoverageDoc.ps1      Regenere docs/COVERAGE.md
+tools/New-CceCoverageDoc.ps1      Regenere docs/COVERAGE.md et docs/COVERAGE.en.md
 tools/New-CceDemoReport.ps1       Rapport de demonstration (test de fumee, sans tenant)
+tools/Test-CceI18n.ps1            Valide les cles de ressources, les placeholders et les catalogues
 samples/                          Exemples de sortie
 docs/COVERAGE.md                  Source interrogee pour chaque exigence
 ```
+
+### Fonctionnement de la localisation
+
+Les fonctions de controle ne contiennent aucun texte en dur : elles referencent une cle
+resolue a l'execution.
+
+```powershell
+New-CceResult -Status 'Non conforme' `
+    -Observed ((T 'c14.obs.ko') -f $disabled.Count) `
+    -Evidence ($disabled | ForEach-Object { $_.UserPrincipalName } | ConvertTo-CceText) `
+    -Remediation (T 'c14.rem.ko')
+```
+
+`T` renvoie le gabarit de la langue active depuis `data/strings.<lang>.json`, l'appelant
+applique `-f`. Une cle absente de la langue active retombe sur le francais, puis sur un
+marqueur visible `[[cle]]` : un manque se voit en recette au lieu de passer inapercu.
+
+`tools/Test-CceI18n.ps1` verrouille le contrat en CI : chaque cle referencee dans le code
+existe dans toutes les langues, et un gabarit ne perd jamais un placeholder a la traduction.
 
 ### Separation donnees / logique
 

@@ -68,7 +68,7 @@ header.top h1{margin:0 0 6px;font-size:1.65rem;letter-spacing:-.01em}
 .badge-warn{background:var(--warn-bg);color:var(--warn)} .badge-manual{background:var(--manual-bg);color:var(--manual)}
 .badge-na{background:var(--na-bg);color:var(--na)}
 .prio{font-size:.72rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
-.prio-bloquant{color:var(--ko);border-color:var(--ko)}
+.prio-blocking{color:var(--ko);border-color:var(--ko)}
 .item-body{padding:14px 16px;font-size:.9rem}
 .block{margin-bottom:10px}
 .block-title{display:block;font-size:.73rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}
@@ -94,7 +94,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
   <div class="sub">
     Tenant : <strong>Contoso Demo</strong>
     &nbsp;&middot;&nbsp; 00000000-1111-2222-3333-444444444444
-    &nbsp;&middot;&nbsp; Genere le 15-08-2026 12:24
+    &nbsp;&middot;&nbsp; Genere le 15-08-2026 13:20
   </div>
   <div><span class="svc svc-on">Graph : connecte</span> <span class="svc svc-on">Exchange : connecte</span> <span class="svc svc-on">Purview : connecte</span> <span class="svc svc-on">SharePoint : connecte</span> <span class="svc svc-on">Teams : connecte</span></div>
 </header>
@@ -103,15 +103,14 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
   <div class="gauge" style="background:conic-gradient(var(--warn) 230.04deg, var(--na-bg) 0)"><span>63.9&nbsp;%</span></div>
   <div class="score-text">
     <h2>Taux de conformite sur les controles evalues automatiquement</h2>
-    <p>23 configuration(s) conforme(s) sur 36 evaluee(s) automatiquement, sur un referentiel de 59 exigences.
-    17 exigence(s) relevent d'une verification manuelle, 6 n'ont pas pu etre evaluees.</p>
+    <p>23 configuration(s) conforme(s) sur 36 evaluee(s) automatiquement, sur un referentiel de 59 exigences. 17 exigence(s) relevent d&#39;une verification manuelle, 6 n&#39;ont pas pu etre evaluees.</p>
     <p><strong>7</strong> exigence(s) <strong>bloquante(s)</strong> non conforme(s).</p>
   </div>
 </div>
 
 <div class="kpis"><div class="kpi kpi-ok"><span class="kpi-value">23</span><span class="kpi-label">Conformes</span></div>
 <div class="kpi kpi-ko"><span class="kpi-value">10</span><span class="kpi-label">Non conformes</span></div>
-<div class="kpi kpi-warn"><span class="kpi-value">3</span><span class="kpi-label">Points d'attention</span></div>
+<div class="kpi kpi-warn"><span class="kpi-value">3</span><span class="kpi-label">Points d&#39;attention</span></div>
 <div class="kpi kpi-manual"><span class="kpi-value">17</span><span class="kpi-label">Verif. manuelle</span></div>
 <div class="kpi kpi-na"><span class="kpi-value">6</span><span class="kpi-label">Non evalues</span></div></div>
 
@@ -169,23 +168,23 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 <div class="toolbar">
   <input id="search" type="search" placeholder="Rechercher une exigence, une categorie, une valeur...">
   <button class="chip active" data-kind="status" data-value="all">Tous</button>
-  <button class="chip" data-kind="status" data-value="ko">Non conformes</button>
+  <button class="chip" data-kind="status" data-value="ko">Non conforme</button>
   <button class="chip" data-kind="status" data-value="warn">Attention</button>
-  <button class="chip" data-kind="status" data-value="ok">Conformes</button>
-  <button class="chip" data-kind="status" data-value="manual">Manuels</button>
+  <button class="chip" data-kind="status" data-value="ok">Conforme</button>
+  <button class="chip" data-kind="status" data-value="manual">Manuel</button>
   <button class="chip active" data-kind="priority" data-value="all">Toutes priorites</button>
-  <button class="chip" data-kind="priority" data-value="Bloquant">Bloquant</button>
-  <button class="chip" data-kind="priority" data-value="Recommande">Recommande</button>
+  <button class="chip" data-kind="priority" data-value="Blocking">Bloquant</button>
+  <button class="chip" data-kind="priority" data-value="Recommended">Recommande</button>
 </div>
 
 <section class="group">
   <h2>ACTIVATION ET CONFIGURATION COPILOT <span class="group-count">10</span></h2>
-  <article class="item" data-status="ok" data-priority="Bloquant" data-text="33 activer copilot globalement au niveau du tenant copilot valeur constatee conforme a la cible">
+  <article class="item" data-status="ok" data-priority="Blocking" data-text="33 activer copilot globalement au niveau du tenant copilot valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#33</span>
     <h3>Activer Copilot globalement au niveau du tenant</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -201,12 +200,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Bloquant" data-text="34 activer tous les workloads copilot (word, excel, ppt, outlook, teams, web) copilot ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="34 activer tous les workloads copilot (word, excel, ppt, outlook, teams, web) copilot ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#34</span>
     <h3>Activer tous les workloads Copilot (Word, Excel, PPT, Outlook, Teams, Web)</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -222,12 +221,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="35 activer copilot chat (microsoft 365 chat / business chat) copilot valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="35 activer copilot chat (microsoft 365 chat / business chat) copilot valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#35</span>
     <h3>Activer Copilot Chat (Microsoft 365 Chat / Business Chat)</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -243,12 +242,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="36 configurer l&#39;acc&#232;s au contenu web et la source de donn&#233;es copilot chat copilot verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="36 configurer l&#39;acc&#232;s au contenu web et la source de donn&#233;es copilot chat copilot verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#36</span>
     <h3>Configurer l&#39;acc&#232;s au contenu web et la source de donn&#233;es Copilot Chat</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -264,12 +263,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Bloquant" data-text="37 v&#233;rifier la propagation de copilot sur un utilisateur test copilot service non connecte lors de cette execution">
+<article class="item" data-status="na" data-priority="Blocking" data-text="37 v&#233;rifier la propagation de copilot sur un utilisateur test copilot service non connecte lors de cette execution">
   <header class="item-head">
     <span class="item-id">#37</span>
     <h3>V&#233;rifier la propagation de Copilot sur un utilisateur test</h3>
     <span class="badge badge-na">Non evalue</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Service non connecte lors de cette execution</div>
@@ -285,12 +284,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Recommande" data-text="38 activer et consulter les rapports d&#39;utilisation copilot copilot ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Recommended" data-text="38 activer et consulter les rapports d&#39;utilisation copilot copilot ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#38</span>
     <h3>Activer et consulter les rapports d&#39;utilisation Copilot</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -327,12 +326,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="40 configurer la g&#233;n&#233;ration d&#39;images copilot (designer) copilot verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="40 configurer la g&#233;n&#233;ration d&#39;images copilot (designer) copilot verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#40</span>
     <h3>Configurer la g&#233;n&#233;ration d&#39;images Copilot (Designer)</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -348,12 +347,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="41 configurer copilot dans bing, microsoft edge et windows copilot verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="41 configurer copilot dans bing, microsoft edge et windows copilot verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#41</span>
     <h3>Configurer Copilot dans Bing, Microsoft Edge et Windows</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -369,12 +368,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="42 configurer la clause d&#39;exclusion de responsabilit&#233; ia copilot copilot verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="42 configurer la clause d&#39;exclusion de responsabilit&#233; ia copilot copilot verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#42</span>
     <h3>Configurer la clause d&#39;exclusion de responsabilit&#233; IA Copilot</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -393,12 +392,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>AGENTS, PLUGINS ET GOUVERNANCE COPILOT <span class="group-count">9</span></h2>
-  <article class="item" data-status="manual" data-priority="Recommande" data-text="43 restreindre la cr&#233;ation d&#39;agents copilot aux administrateurs agents verification manuelle requise (aucune api publique)">
+  <article class="item" data-status="manual" data-priority="Recommended" data-text="43 restreindre la cr&#233;ation d&#39;agents copilot aux administrateurs agents verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#43</span>
     <h3>Restreindre la cr&#233;ation d&#39;agents Copilot aux administrateurs</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -414,12 +413,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="44 d&#233;finir qui peut publier des agents dans l&#39;organisation agents verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="44 d&#233;finir qui peut publier des agents dans l&#39;organisation agents verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#44</span>
     <h3>D&#233;finir qui peut publier des agents dans l&#39;organisation</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -435,12 +434,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="45 contr&#244;ler les extensions et plugins tiers autoris&#233;s agents valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="45 contr&#244;ler les extensions et plugins tiers autoris&#233;s agents valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#45</span>
     <h3>Contr&#244;ler les extensions et plugins tiers autoris&#233;s</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -456,12 +455,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="46 contr&#244;ler les connecteurs microsoft graph autoris&#233;s agents valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="46 contr&#244;ler les connecteurs microsoft graph autoris&#233;s agents valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#46</span>
     <h3>Contr&#244;ler les connecteurs Microsoft Graph autoris&#233;s</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -477,12 +476,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Recommande" data-text="47 activer l&#39;audit des interactions avec les agents copilot agents service non connecte lors de cette execution">
+<article class="item" data-status="na" data-priority="Recommended" data-text="47 activer l&#39;audit des interactions avec les agents copilot agents service non connecte lors de cette execution">
   <header class="item-head">
     <span class="item-id">#47</span>
     <h3>Activer l&#39;audit des interactions avec les agents Copilot</h3>
     <span class="badge badge-na">Non evalue</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Service non connecte lors de cette execution</div>
@@ -585,12 +584,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>APPLICATIONS ET AUTHENTIFICATION <span class="group-count">4</span></h2>
-  <article class="item" data-status="manual" data-priority="Bloquant" data-text="6 microsoft 365 apps for enterprise d&#233;ploy&#233; sur les postes apps office verification manuelle requise (aucune api publique)">
+  <article class="item" data-status="manual" data-priority="Blocking" data-text="6 microsoft 365 apps for enterprise d&#233;ploy&#233; sur les postes apps office verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#6</span>
     <h3>Microsoft 365 Apps for Enterprise d&#233;ploy&#233; sur les postes</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -606,12 +605,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Bloquant" data-text="7 canal de mise &#224; jour = current channel ou monthly enterprise apps office ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="7 canal de mise &#224; jour = current channel ou monthly enterprise apps office ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#7</span>
     <h3>Canal de mise &#224; jour = Current Channel ou Monthly Enterprise</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -627,12 +626,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="8 modern authentication (oauth2) activ&#233;e sur le tenant apps office valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="8 modern authentication (oauth2) activ&#233;e sur le tenant apps office valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#8</span>
     <h3>Modern Authentication (OAuth2) activ&#233;e sur le tenant</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -648,12 +647,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Bloquant" data-text="9 exp&#233;riences connect&#233;es (connected experiences) activ&#233;es apps office verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Blocking" data-text="9 exp&#233;riences connect&#233;es (connected experiences) activ&#233;es apps office verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#9</span>
     <h3>Exp&#233;riences connect&#233;es (Connected Experiences) activ&#233;es</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -672,12 +671,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>EXCHANGE ONLINE <span class="group-count">3</span></h2>
-  <article class="item" data-status="warn" data-priority="Bloquant" data-text="24 v&#233;rifier que les boites aux lettres sont dans exchange online exchange configuration partielle : arbitrage requis">
+  <article class="item" data-status="warn" data-priority="Blocking" data-text="24 v&#233;rifier que les boites aux lettres sont dans exchange online exchange configuration partielle : arbitrage requis">
   <header class="item-head">
     <span class="item-id">#24</span>
     <h3>V&#233;rifier que les boites aux lettres sont dans Exchange Online</h3>
     <span class="badge badge-warn">Attention</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Configuration partielle : arbitrage requis</div>
@@ -693,12 +692,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="25 v&#233;rifier que mapi est activ&#233; sur les boites copilot exchange valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="25 v&#233;rifier que mapi est activ&#233; sur les boites copilot exchange valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#25</span>
     <h3>V&#233;rifier que MAPI est activ&#233; sur les boites Copilot</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -714,12 +713,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="26 activer l&#39;audit unifi&#233; et l&#39;audit des boites aux lettres exchange valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="26 activer l&#39;audit unifi&#233; et l&#39;audit des boites aux lettres exchange valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#26</span>
     <h3>Activer l&#39;audit unifi&#233; et l&#39;audit des boites aux lettres</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -738,12 +737,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>IDENTITE ET ACCES CONDITIONNEL <span class="group-count">6</span></h2>
-  <article class="item" data-status="ko" data-priority="Bloquant" data-text="10 mfa activ&#233; pour tous les utilisateurs copilot via acc&#232;s conditionnel identite ecart constate par rapport a la valeur attendue">
+  <article class="item" data-status="ko" data-priority="Blocking" data-text="10 mfa activ&#233; pour tous les utilisateurs copilot via acc&#232;s conditionnel identite ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#10</span>
     <h3>MFA activ&#233; pour tous les utilisateurs Copilot via Acc&#232;s conditionnel</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -759,12 +758,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Bloquant" data-text="11 v&#233;rifier qu&#39;aucune strat&#233;gie ca ne bloque microsoft graph identite ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="11 v&#233;rifier qu&#39;aucune strat&#233;gie ca ne bloque microsoft graph identite ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#11</span>
     <h3>V&#233;rifier qu&#39;aucune strat&#233;gie CA ne bloque Microsoft Graph</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -780,12 +779,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="12 v&#233;rifier qu&#39;aucune ca policy ne bloque office 365 identite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="12 v&#233;rifier qu&#39;aucune ca policy ne bloque office 365 identite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#12</span>
     <h3>V&#233;rifier qu&#39;aucune CA policy ne bloque Office 365</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -801,12 +800,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="13 upn des utilisateurs = adresse email principale (pas .local) identite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="13 upn des utilisateurs = adresse email principale (pas .local) identite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#13</span>
     <h3>UPN des utilisateurs = adresse email principale (pas .local)</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -822,12 +821,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="14 retirer les licences copilot des comptes d&#233;sactiv&#233;s identite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="14 retirer les licences copilot des comptes d&#233;sactiv&#233;s identite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#14</span>
     <h3>Retirer les licences Copilot des comptes d&#233;sactiv&#233;s</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -843,12 +842,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="15 retirer les licences copilot des comptes invit&#233;s (b2b) identite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="15 retirer les licences copilot des comptes invit&#233;s (b2b) identite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#15</span>
     <h3>Retirer les licences Copilot des comptes invit&#233;s (B2B)</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -867,12 +866,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>LICENCES COPILOT <span class="group-count">5</span></h2>
-  <article class="item" data-status="ok" data-priority="Bloquant" data-text="1 licence m365 e3/e5 ou business premium attribu&#233;e aux utilisateurs cibles licences valeur constatee conforme a la cible">
+  <article class="item" data-status="ok" data-priority="Blocking" data-text="1 licence m365 e3/e5 ou business premium attribu&#233;e aux utilisateurs cibles licences valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#1</span>
     <h3>Licence M365 E3/E5 ou Business Premium attribu&#233;e aux utilisateurs cibles</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -888,12 +887,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Bloquant" data-text="2 sku microsoft 365 copilot achet&#233; et visible sur le tenant licences ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Blocking" data-text="2 sku microsoft 365 copilot achet&#233; et visible sur le tenant licences ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#2</span>
     <h3>SKU Microsoft 365 Copilot achet&#233; et visible sur le tenant</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -909,12 +908,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="3 licence copilot attribu&#233;e individuellement ou via groupe licences valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="3 licence copilot attribu&#233;e individuellement ou via groupe licences valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#3</span>
     <h3>Licence Copilot attribu&#233;e individuellement ou via groupe</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -930,12 +929,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="warn" data-priority="Recommande" data-text="4 attribution des licences via groupe entra id (pas manuelle) licences configuration partielle : arbitrage requis">
+<article class="item" data-status="warn" data-priority="Recommended" data-text="4 attribution des licences via groupe entra id (pas manuelle) licences configuration partielle : arbitrage requis">
   <header class="item-head">
     <span class="item-id">#4</span>
     <h3>Attribution des licences via groupe Entra ID (pas manuelle)</h3>
     <span class="badge badge-warn">Attention</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Configuration partielle : arbitrage requis</div>
@@ -951,12 +950,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Recommande" data-text="5 v&#233;rifier que l&#39;abonnement copilot n&#39;expire pas dans les 60 jours licences ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Recommended" data-text="5 v&#233;rifier que l&#39;abonnement copilot n&#39;expire pas dans les 60 jours licences ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#5</span>
     <h3>V&#233;rifier que l&#39;abonnement Copilot n&#39;expire pas dans les 60 jours</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -975,12 +974,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>MICROSOFT TEAMS POUR COPILOT <span class="group-count">6</span></h2>
-  <article class="item" data-status="ko" data-priority="Bloquant" data-text="27 autoriser l&#39;application copilot dans les strat&#233;gies teams teams ecart constate par rapport a la valeur attendue">
+  <article class="item" data-status="ko" data-priority="Blocking" data-text="27 autoriser l&#39;application copilot dans les strat&#233;gies teams teams ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#27</span>
     <h3>Autoriser l&#39;application Copilot dans les strat&#233;gies Teams</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -996,12 +995,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="28 &#233;pingler copilot dans la barre lat&#233;rale teams teams valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="28 &#233;pingler copilot dans la barre lat&#233;rale teams teams valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#28</span>
     <h3>&#201;pingler Copilot dans la barre lat&#233;rale Teams</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1017,12 +1016,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="29 activer la transcription des r&#233;unions (obligatoire pour les r&#233;sum&#233;s copilot) teams valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="29 activer la transcription des r&#233;unions (obligatoire pour les r&#233;sum&#233;s copilot) teams valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#29</span>
     <h3>Activer la transcription des r&#233;unions (obligatoire pour les r&#233;sum&#233;s Copilot)</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1038,12 +1037,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="30 activer l&#39;enregistrement cloud des r&#233;unions teams valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="30 activer l&#39;enregistrement cloud des r&#233;unions teams valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#30</span>
     <h3>Activer l&#39;enregistrement cloud des r&#233;unions</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1059,12 +1058,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="warn" data-priority="Bloquant" data-text="31 configurer le mode copilot pour les r&#233;unions teams configuration partielle : arbitrage requis">
+<article class="item" data-status="warn" data-priority="Blocking" data-text="31 configurer le mode copilot pour les r&#233;unions teams configuration partielle : arbitrage requis">
   <header class="item-head">
     <span class="item-id">#31</span>
     <h3>Configurer le mode Copilot pour les r&#233;unions</h3>
     <span class="badge badge-warn">Attention</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Configuration partielle : arbitrage requis</div>
@@ -1104,12 +1103,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>SECURITE ET PROTECTION DES DONNEES <span class="group-count">8</span></h2>
-  <article class="item" data-status="ko" data-priority="Bloquant" data-text="52 configurer les labels de sensibilit&#233; (minimum 3 niveaux) securite ecart constate par rapport a la valeur attendue">
+  <article class="item" data-status="ko" data-priority="Blocking" data-text="52 configurer les labels de sensibilit&#233; (minimum 3 niveaux) securite ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#52</span>
     <h3>Configurer les labels de sensibilit&#233; (minimum 3 niveaux)</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -1125,12 +1124,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="53 publier les labels vers les utilisateurs copilot securite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="53 publier les labels vers les utilisateurs copilot securite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#53</span>
     <h3>Publier les labels vers les utilisateurs Copilot</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1146,12 +1145,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="54 activer l&#39;auto-labeling pour les nouveaux fichiers securite valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="54 activer l&#39;auto-labeling pour les nouveaux fichiers securite valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#54</span>
     <h3>Activer l&#39;auto-labeling pour les nouveaux fichiers</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1167,12 +1166,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Bloquant" data-text="55 configurer des politiques dlp couvrant les 4 workloads securite service non connecte lors de cette execution">
+<article class="item" data-status="na" data-priority="Blocking" data-text="55 configurer des politiques dlp couvrant les 4 workloads securite service non connecte lors de cette execution">
   <header class="item-head">
     <span class="item-id">#55</span>
     <h3>Configurer des politiques DLP couvrant les 4 workloads</h3>
     <span class="badge badge-na">Non evalue</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Service non connecte lors de cette execution</div>
@@ -1188,12 +1187,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Recommande" data-text="56 configurer la r&#233;tention des interactions copilot securite service non connecte lors de cette execution">
+<article class="item" data-status="na" data-priority="Recommended" data-text="56 configurer la r&#233;tention des interactions copilot securite service non connecte lors de cette execution">
   <header class="item-head">
     <span class="item-id">#56</span>
     <h3>Configurer la r&#233;tention des interactions Copilot</h3>
     <span class="badge badge-na">Non evalue</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Service non connecte lors de cette execution</div>
@@ -1209,12 +1208,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="na" data-priority="Recommande" data-text="57 configurer la r&#233;tention des logs d&#39;audit (&gt;= 90 jours) securite service non connecte lors de cette execution">
+<article class="item" data-status="na" data-priority="Recommended" data-text="57 configurer la r&#233;tention des logs d&#39;audit (&gt;= 90 jours) securite service non connecte lors de cette execution">
   <header class="item-head">
     <span class="item-id">#57</span>
     <h3>Configurer la r&#233;tention des logs d&#39;audit (&gt;= 90 jours)</h3>
     <span class="badge badge-na">Non evalue</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Service non connecte lors de cette execution</div>
@@ -1275,12 +1274,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </section>
 <section class="group">
   <h2>SHAREPOINT ET ONEDRIVE <span class="group-count">8</span></h2>
-  <article class="item" data-status="ok" data-priority="Bloquant" data-text="16 configurer le partage global sharepoint en mode s&#233;curis&#233; sharepoint valeur constatee conforme a la cible">
+  <article class="item" data-status="ok" data-priority="Blocking" data-text="16 configurer le partage global sharepoint en mode s&#233;curis&#233; sharepoint valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#16</span>
     <h3>Configurer le partage global SharePoint en mode s&#233;curis&#233;</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1296,12 +1295,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="17 configurer l&#39;expiration des liens anonymes &#224; 7 jours maximum sharepoint valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="17 configurer l&#39;expiration des liens anonymes &#224; 7 jours maximum sharepoint valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#17</span>
     <h3>Configurer l&#39;expiration des liens anonymes &#224; 7 jours maximum</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1317,12 +1316,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Bloquant" data-text="18 identifier et restreindre les sites sharepoint sur-partag&#233;s sharepoint valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Blocking" data-text="18 identifier et restreindre les sites sharepoint sur-partag&#233;s sharepoint valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#18</span>
     <h3>Identifier et restreindre les sites SharePoint sur-partag&#233;s</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1338,12 +1337,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ok" data-priority="Recommande" data-text="19 provisionner onedrive pour tous les utilisateurs copilot sharepoint valeur constatee conforme a la cible">
+<article class="item" data-status="ok" data-priority="Recommended" data-text="19 provisionner onedrive pour tous les utilisateurs copilot sharepoint valeur constatee conforme a la cible">
   <header class="item-head">
     <span class="item-id">#19</span>
     <h3>Provisionner OneDrive pour tous les utilisateurs Copilot</h3>
     <span class="badge badge-ok">Conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Valeur constatee conforme a la cible</div>
@@ -1359,12 +1358,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Bloquant" data-text="20 v&#233;rifier que microsoft search est activ&#233; et fonctionnelle sharepoint verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Blocking" data-text="20 v&#233;rifier que microsoft search est activ&#233; et fonctionnelle sharepoint verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#20</span>
     <h3>V&#233;rifier que Microsoft Search est activ&#233; et fonctionnelle</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-bloquant">Bloquant</span>
+    <span class="prio prio-blocking">Bloquant</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -1380,12 +1379,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="manual" data-priority="Recommande" data-text="21 v&#233;rifier que nocrawl est d&#233;sactiv&#233; sur les sites critiques sharepoint verification manuelle requise (aucune api publique)">
+<article class="item" data-status="manual" data-priority="Recommended" data-text="21 v&#233;rifier que nocrawl est d&#233;sactiv&#233; sur les sites critiques sharepoint verification manuelle requise (aucune api publique)">
   <header class="item-head">
     <span class="item-id">#21</span>
     <h3>V&#233;rifier que NoCrawl est d&#233;sactiv&#233; sur les sites critiques</h3>
     <span class="badge badge-manual">Manuel</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Verification manuelle requise (aucune API publique)</div>
@@ -1401,12 +1400,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     </details>
   </div>
 </article>
-<article class="item" data-status="ko" data-priority="Recommande" data-text="22 v&#233;rifier la configuration de restricted sharepoint search sharepoint ecart constate par rapport a la valeur attendue">
+<article class="item" data-status="ko" data-priority="Recommended" data-text="22 v&#233;rifier la configuration de restricted sharepoint search sharepoint ecart constate par rapport a la valeur attendue">
   <header class="item-head">
     <span class="item-id">#22</span>
     <h3>V&#233;rifier la configuration de Restricted SharePoint Search</h3>
     <span class="badge badge-ko">Non conforme</span>
-    <span class="prio prio-recommande">Recommande</span>
+    <span class="prio prio-recommended">Recommande</span>
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>Ecart constate par rapport a la valeur attendue</div>
@@ -1445,11 +1444,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 </article>
 </section>
 
-<footer>
-  Rapport genere par <strong>Copilot Check Engine</strong> le 15-08-2026 12:24 &mdash;
-  referentiel : Microsoft 365 Copilot - Checklist de configuration tenant v2.0.
-  Les statuts « Manuel » signalent les exigences sans API publique : elles doivent etre validees a la main.
-</footer>
+<footer>Rapport genere par <strong>Copilot Check Engine</strong> le 15-08-2026 13:20 &mdash; referentiel : Microsoft 365 Copilot - Checklist de configuration tenant v2.0. Les statuts &laquo;&nbsp;Manuel&nbsp;&raquo; signalent les exigences sans API publique : elles doivent etre validees a la main.</footer>
 
 </div>
 <script>(function () {

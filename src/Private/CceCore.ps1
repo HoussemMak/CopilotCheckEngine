@@ -4,13 +4,51 @@
     Ce fichier est dot-source par Invoke-CopilotCheckEngine.ps1.
 #>
 
-# Statuts normalises utilises par tout le moteur.
-$script:CceStatus = @{
-    Conforme    = 'Conforme'      # verifie automatiquement, conforme a la valeur attendue
-    NonConforme = 'Non conforme'  # verifie automatiquement, ecart avere
-    Attention   = 'Attention'     # verifie, conforme partiellement ou a arbitrer
-    Manuel      = 'Manuel'        # aucune API publique : verification humaine requise
-    NonEvalue   = 'Non evalue'    # service non connecte / droits insuffisants / erreur
+# Jetons canoniques de statut, independants de la langue.
+# Les fonctions de controle continuent d'emettre les libelles francais historiques :
+# New-CceResult les convertit ici. Toute la logique aval (statistiques, filtres,
+# mise en forme conditionnelle) raisonne sur le jeton canonique, jamais sur l'affichage.
+$script:CceStatusCanonical = @{
+    'Conforme'     = 'Compliant'
+    'Non conforme' = 'NonCompliant'
+    'Attention'    = 'Warning'
+    'Manuel'       = 'Manual'
+    'Non evalue'   = 'NotEvaluated'
+}
+
+$script:CceStatusOrder = @('Compliant', 'NonCompliant', 'Warning', 'Manual', 'NotEvaluated')
+
+# Idem pour les priorites : le catalogue est localise, le moteur ne l'est pas.
+$script:CcePriorityCanonical = @{
+    'Bloquant'    = 'Blocking'
+    'Recommande'  = 'Recommended'
+    'Optimal'     = 'Optimal'
+    'Blocking'    = 'Blocking'
+    'Recommended' = 'Recommended'
+}
+
+$script:CcePriorityOrder = @('Blocking', 'Recommended', 'Optimal')
+
+function ConvertTo-CceCanonicalStatus {
+    [CmdletBinding()] param([Parameter(Mandatory)] [string] $Status)
+    if ($script:CceStatusCanonical.ContainsKey($Status)) { $script:CceStatusCanonical[$Status] } else { $Status }
+}
+
+function ConvertTo-CceCanonicalPriority {
+    [CmdletBinding()] param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Priority)
+    if ($script:CcePriorityCanonical.ContainsKey($Priority)) { $script:CcePriorityCanonical[$Priority] } else { $Priority }
+}
+
+function Get-CceStatusLabel {
+    <# Libelle affichable du statut, dans la langue active. #>
+    [CmdletBinding()] param([Parameter(Mandatory)] [string] $Status)
+    T "status.$(ConvertTo-CceCanonicalStatus -Status $Status)"
+}
+
+function Get-CcePriorityLabel {
+    <# Libelle affichable de la priorite, dans la langue active. #>
+    [CmdletBinding()] param([Parameter(Mandatory)] [AllowEmptyString()] [string] $Priority)
+    T "priority.$(ConvertTo-CceCanonicalPriority -Priority $Priority)"
 }
 
 function Write-CceLog {
@@ -62,7 +100,8 @@ function New-CceResult {
     )
 
     [pscustomobject]@{
-        Status      = $Status
+        Status      = ConvertTo-CceCanonicalStatus -Status $Status
+        StatusInput = $Status
         Observed    = $Observed
         Evidence    = $Evidence
         Remediation = $Remediation
@@ -87,7 +126,7 @@ function Get-CceSafe {
         & $ScriptBlock
     }
     catch {
-        Write-CceLog "Echec $What : $($_.Exception.Message)" -Level WARN
+        Write-CceLog ((T 'core.safe.failed') -f $What, $_.Exception.Message) -Level WARN
         $null
     }
 }
@@ -116,7 +155,7 @@ function ConvertTo-CceText {
 
         $text = $lines -join [Environment]::NewLine
         if ($buffer.Count -gt $MaxItems) {
-            $text += [Environment]::NewLine + ("... et {0} autre(s) element(s)" -f ($buffer.Count - $MaxItems))
+            $text += [Environment]::NewLine + ((T 'core.truncated') -f ($buffer.Count - $MaxItems))
         }
         $text
     }
@@ -177,10 +216,10 @@ function New-CceNotEvaluated {
         [Parameter(Mandatory)] $Context
     )
 
-    $reason = if ($Context.ServiceError.Contains($Service)) { $Context.ServiceError[$Service] } else { 'service non connecte' }
+    $reason = if ($Context.ServiceError.Contains($Service)) { $Context.ServiceError[$Service] } else { T 'core.notevaluated.reason' }
 
     New-CceResult -Status 'Non evalue' `
-        -Observed "Service $Service indisponible" `
-        -Evidence "Le controle necessite une connexion $Service. Motif : $reason" `
-        -Remediation "Relancer le moteur avec les droits requis sur $Service."
+        -Observed ((T 'core.notevaluated.obs') -f $Service) `
+        -Evidence ((T 'core.notevaluated.ev') -f $Service, $reason) `
+        -Remediation ((T 'core.notevaluated.rem') -f $Service)
 }

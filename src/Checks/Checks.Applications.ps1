@@ -25,7 +25,7 @@ function Get-CceOfficeLocalConfiguration {
         'f2e724c1-748f-4b47-8fb8-8e0d210e9208' = 'Semi-Annual Enterprise Channel (Preview)'
     }
 
-    $channel = 'Inconnu'
+    $channel = (T 'h.get-cceofficelocalconfiguration.obs.unknown')
     foreach ($guid in $channelMap.Keys) {
         if ("$($cfg.CDNBaseUrl)" -match $guid) { $channel = $channelMap[$guid]; break }
     }
@@ -51,9 +51,9 @@ function Invoke-CceCheck06 {
         $status = if ("$($local.ProductIds)" -match 'O365ProPlusRetail|O365BusinessRetail') { 'Conforme' } else { 'Non conforme' }
 
         return New-CceResult -Status $status `
-            -Observed ("Poste local : produit={0}, version={1}" -f $local.ProductIds, $local.Version) `
-            -Evidence ("Registre ClickToRun du poste executant le moteur.`nProduits : $($local.ProductIds)`nVersion : $($local.Version)`nPlateforme : $($local.Platform)") `
-            -Remediation $(if ($status -eq 'Conforme') { '' } else { "Le poste execute une version perpetuelle d'Office : deployer Microsoft 365 Apps for Enterprise (canal Current ou Monthly Enterprise)." })
+            -Observed ((T 'c06.obs.local') -f $local.ProductIds, $local.Version) `
+            -Evidence ((T 'c06.ev.local') -f "$($local.ProductIds)", "$($local.Version)", "$($local.Platform)") `
+            -Remediation $(if ($status -eq 'Conforme') { '' } else { (T 'c06.rem.local') })
     }
 
     # Signal tenant : rapport d'usage des applications M365 (indique les applications reellement utilisees).
@@ -67,15 +67,15 @@ function Invoke-CceCheck06 {
         $rows = @($report.value)
         $withDesktop = @($rows | Where-Object { "$($_.appVersion)" -match '16\.0' -or $_.word -eq $true })
         return New-CceResult -Status 'Manuel' `
-            -Observed ("{0} utilisateur(s) remontent dans le rapport d'usage M365 Apps (30 j)" -f $rows.Count) `
-            -Evidence ("Le rapport Graph getM365AppUserDetail ne distingue pas Office perpetuel de Microsoft 365 Apps.`nUtilisateurs actifs remontes : $($rows.Count) (dont $($withDesktop.Count) avec activite bureau).") `
-            -Remediation "Verifier le canal et le produit sur un poste de reference (Word > Fichier > Compte) ou via l'inventaire Intune. Relancer le moteur avec -IncludeLocalChecks pour auditer le poste courant."
+            -Observed ((T 'c06.obs.report') -f $rows.Count) `
+            -Evidence ((T 'c06.ev.report') -f $rows.Count, $withDesktop.Count) `
+            -Remediation (T 'c06.rem.report')
     }
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Non determinable a distance' `
-        -Evidence "Le produit Office installe est une donnee poste, non exposee par une API tenant." `
-        -Remediation "Controler via Intune / inventaire logiciel, ou relancer le moteur avec -IncludeLocalChecks sur un poste de reference."
+        -Observed (T 'c06.obs.manual') `
+        -Evidence (T 'c06.ev.manual') `
+        -Remediation (T 'c06.rem.manual')
 }
 
 function Invoke-CceCheck07 {
@@ -87,9 +87,9 @@ function Invoke-CceCheck07 {
     if ($local) {
         $ok = $local.Channel -in @('Current Channel', 'Monthly Enterprise Channel')
         return New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Non conforme' }) `
-            -Observed ("Poste local : canal = {0}" -f $local.Channel) `
-            -Evidence ("CDNBaseUrl : $($local.CdnBaseUrl)`nCanal resolu : $($local.Channel)`nVersion : $($local.Version)") `
-            -Remediation $(if ($ok) { '' } else { "Basculer le poste sur Current Channel ou Monthly Enterprise Channel (Office Deployment Tool ou strategie Intune / ADMX)." })
+            -Observed ((T 'c07.obs.local') -f $local.Channel) `
+            -Evidence ((T 'c07.ev.local') -f "$($local.CdnBaseUrl)", "$($local.Channel)", "$($local.Version)") `
+            -Remediation $(if ($ok) { '' } else { (T 'c07.rem.local') })
     }
 
     if (-not $Context.Services.Graph) { return New-CceNotEvaluated -Service Graph -Context $Context }
@@ -98,18 +98,18 @@ function Invoke-CceCheck07 {
 
     if (-not $options) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Canal de mise a jour non lisible via Graph' `
-            -Evidence "L'endpoint beta/admin/microsoft365Apps/installationOptions n'est pas accessible (droits ou tenant)." `
-            -Remediation "Verifier le canal dans admin.cloud.microsoft > Parametres > Parametres de l'organisation > Installations Microsoft 365, ou via la strategie Intune."
+            -Observed (T 'c07.obs.unreadable') `
+            -Evidence (T 'c07.ev.unreadable') `
+            -Remediation (T 'c07.rem.unreadable')
     }
 
     $channel = "$($options.updateChannel)"
     $ok = $channel -in @('current', 'monthlyEnterprise')
 
     New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Attention' }) `
-        -Observed ("Canal d'installation par defaut du tenant : {0}" -f $channel) `
-        -Evidence ("updateChannel : $channel`nWindows : $($options.appsForWindows | ConvertTo-Json -Compress)`nRemarque : ce parametre couvre les installations libre-service ; les postes geres suivent la strategie Intune / ODT.") `
-        -Remediation $(if ($ok) { '' } else { "Positionner le canal sur Current Channel ou Monthly Enterprise Channel : Copilot n'est pas livre sur Semi-Annual." })
+        -Observed ((T 'c07.obs.tenant') -f $channel) `
+        -Evidence ((T 'c07.ev.tenant') -f $channel, "$($options.appsForWindows | ConvertTo-Json -Compress)") `
+        -Remediation $(if ($ok) { '' } else { (T 'c07.rem.tenant') })
 }
 
 function Invoke-CceCheck08 {
@@ -124,9 +124,9 @@ function Invoke-CceCheck08 {
     $enabled = [bool] $org.OAuth2ClientProfileEnabled
 
     New-CceResult -Status $(if ($enabled) { 'Conforme' } else { 'Non conforme' }) `
-        -Observed ("OAuth2ClientProfileEnabled = {0}" -f $enabled) `
-        -Evidence ("Get-OrganizationConfig : OAuth2ClientProfileEnabled = $enabled") `
-        -Remediation $(if ($enabled) { '' } else { "Executer : Set-OrganizationConfig -OAuth2ClientProfileEnabled `$true" })
+        -Observed ((T 'c08.obs.default') -f $enabled) `
+        -Evidence ((T 'c08.ev.default') -f $enabled) `
+        -Remediation $(if ($enabled) { '' } else { (T 'c08.rem.ko') })
 }
 
 function Invoke-CceCheck09 {
@@ -138,30 +138,30 @@ function Invoke-CceCheck09 {
         if (Test-Path $key) {
             $p = Get-CceSafe { Get-ItemProperty -Path $key -ErrorAction Stop } -What 'registre privacy Office'
             $blocked = @()
-            if ($p.disconnectedstate -eq 2)         { $blocked += 'Toutes les experiences connectees desactivees' }
-            if ($p.usercontentdisabled -eq 1)       { $blocked += 'Experiences analysant le contenu desactivees' }
-            if ($p.downloadcontentdisabled -eq 1)   { $blocked += 'Experiences telechargeant du contenu desactivees' }
-            if ($p.controllerconnectedservicesenabled -eq 0) { $blocked += 'Experiences connectees optionnelles desactivees' }
+            if ($p.disconnectedstate -eq 2)         { $blocked += (T 'c09.ev.disconnected') }
+            if ($p.usercontentdisabled -eq 1)       { $blocked += (T 'c09.ev.usercontent') }
+            if ($p.downloadcontentdisabled -eq 1)   { $blocked += (T 'c09.ev.downloadcontent') }
+            if ($p.controllerconnectedservicesenabled -eq 0) { $blocked += (T 'c09.ev.optional') }
 
             if ($blocked.Count -gt 0) {
                 return New-CceResult -Status 'Non conforme' `
-                    -Observed ("Poste local : {0} restriction(s) de confidentialite bloquante(s)" -f $blocked.Count) `
+                    -Observed ((T 'c09.obs.blocked') -f $blocked.Count) `
                     -Evidence ($blocked | ConvertTo-CceText) `
-                    -Remediation "Reactiver les experiences connectees (strategie de groupe / Intune : Parametres de confidentialite Office)."
+                    -Remediation (T 'c09.rem.blocked')
             }
 
             return New-CceResult -Status 'Conforme' `
-                -Observed 'Poste local : aucune restriction de confidentialite bloquant Copilot' `
-                -Evidence "Cle $key presente sans valeur bloquante."
+                -Observed (T 'c09.obs.ok') `
+                -Evidence ((T 'c09.ev.ok') -f $key)
         }
 
         return New-CceResult -Status 'Conforme' `
-            -Observed 'Poste local : aucune strategie de confidentialite Office restrictive' `
-            -Evidence "Cle $key absente : les experiences connectees suivent la valeur par defaut (activees)."
+            -Observed (T 'c09.obs.nopolicy') `
+            -Evidence ((T 'c09.ev.nopolicy') -f $key)
     }
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Parametre poste / strategie de groupe' `
-        -Evidence "Les experiences connectees sont pilotees par strategie ADMX ou Intune, sans API tenant." `
-        -Remediation "Verifier la strategie 'Parametres de confidentialite Office' (Intune ou GPO) et relancer avec -IncludeLocalChecks sur un poste de reference."
+        -Observed (T 'c09.obs.manual') `
+        -Evidence (T 'c09.ev.manual') `
+        -Remediation (T 'c09.rem.manual')
 }

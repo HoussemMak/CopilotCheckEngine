@@ -76,24 +76,24 @@ function Invoke-CceCheck33 {
             @($_.PSObject.Properties | Where-Object { $_.Name -match 'LastActivityDate' -and -not [string]::IsNullOrWhiteSpace("$($_.Value)") }).Count -gt 0
         })
 
-        $evidenceParts.Add("Rapport d'usage Copilot (30 j) : $($rows.Count) utilisateur(s) remontes, $($active.Count) avec au moins une activite.")
+        $evidenceParts.Add(((T 'c33.ev.usage') -f $rows.Count, $active.Count))
 
         if ($active.Count -gt 0) {
             return New-CceResult -Status 'Conforme' `
-                -Observed ("Copilot operationnel : {0} utilisateur(s) actif(s) sur 30 jours" -f $active.Count) `
+                -Observed ((T 'c33.obs.ok') -f $active.Count) `
                 -Evidence ($evidenceParts | ConvertTo-CceText)
         }
 
         return New-CceResult -Status 'Attention' `
-            -Observed ("Aucune activite Copilot sur 30 jours ({0} utilisateur(s) dans le rapport)" -f $rows.Count) `
+            -Observed ((T 'c33.obs.warn') -f $rows.Count) `
             -Evidence ($evidenceParts | ConvertTo-CceText) `
-            -Remediation "Verifier l'activation dans admin.cloud.microsoft > Parametres > Copilot, puis confirmer avec un utilisateur pilote."
+            -Remediation (T 'c33.rem.warn')
     }
 
     New-CceResult -Status 'Manuel' `
-        -Observed "Bascule tenant non exposee par API" `
-        -Evidence (($evidenceParts + "Le rapport d'usage Copilot n'a pas repondu (droits Reports.Read.All ou aucune donnee).") | ConvertTo-CceText) `
-        -Remediation "Verifier manuellement : admin.cloud.microsoft > Parametres > Copilot."
+        -Observed (T 'c33.obs.manual') `
+        -Evidence (($evidenceParts + (T 'c33.ev.manual')) | ConvertTo-CceText) `
+        -Remediation (T 'c33.rem.manual')
 }
 
 function Invoke-CceCheck34 {
@@ -104,9 +104,9 @@ function Invoke-CceCheck34 {
 
     if ($null -eq $rows) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Etat des workloads non exposee par API' `
-            -Evidence "Le rapport d'usage Copilot n'est pas disponible." `
-            -Remediation "Verifier chaque workload dans admin.cloud.microsoft > Parametres > Copilot."
+            -Observed (T 'c34.obs.manual') `
+            -Evidence (T 'c34.ev.manual') `
+            -Remediation (T 'c34.rem.manual')
     }
 
     $activity = Get-CceWorkloadActivity -Rows $rows
@@ -116,15 +116,15 @@ function Invoke-CceCheck34 {
 
     if ($silent.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("Activite constatee sur tous les workloads cles : {0}" -f $observed) `
-            -Evidence ($activity.GetEnumerator() | ForEach-Object { "$($_.Key) : $($_.Value) utilisateur(s) actif(s) sur 30 j" } | ConvertTo-CceText)
+            -Observed ((T 'c34.obs.ok') -f $observed) `
+            -Evidence ($activity.GetEnumerator() | ForEach-Object { (T 'c34.ev.line') -f $_.Key, $_.Value } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed ("Aucune activite sur : {0} ({1})" -f ($silent -join ', '), $observed) `
-        -Evidence (($activity.GetEnumerator() | ForEach-Object { "$($_.Key) : $($_.Value) utilisateur(s) actif(s) sur 30 j" }) +
-                   @("Une activite nulle peut traduire un workload desactive ou simplement non adopte.") | ConvertTo-CceText) `
-        -Remediation "Confirmer l'activation des workloads sans activite dans admin.cloud.microsoft > Parametres > Copilot avant de conclure a un defaut d'adoption."
+        -Observed ((T 'c34.obs.warn') -f ($silent -join ', '), $observed) `
+        -Evidence (($activity.GetEnumerator() | ForEach-Object { (T 'c34.ev.line') -f $_.Key, $_.Value }) +
+                   @(T 'c34.ev.note') | ConvertTo-CceText) `
+        -Remediation (T 'c34.rem.warn')
 }
 
 function Invoke-CceCheck35 {
@@ -135,24 +135,24 @@ function Invoke-CceCheck35 {
 
     if ($null -eq $rows) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Etat de Copilot Chat non exposee par API' `
-            -Evidence "Rapport d'usage indisponible." `
-            -Remediation "Tester copilot.microsoft.com avec un utilisateur licencie."
+            -Observed (T 'c35.obs.manual') `
+            -Evidence (T 'c35.ev.manual') `
+            -Remediation (T 'c35.rem.manual')
     }
 
     $chatUsers = @($rows | Where-Object { -not [string]::IsNullOrWhiteSpace("$($_.copilotChatLastActivityDate)") })
 
     if ($chatUsers.Count -gt 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("{0} utilisateur(s) actif(s) sur Copilot Chat (30 j)" -f $chatUsers.Count) `
+            -Observed ((T 'c35.obs.ok') -f $chatUsers.Count) `
             -Evidence ($chatUsers | Select-Object -First 15 |
                 ForEach-Object { "$($_.userPrincipalName) : $($_.copilotChatLastActivityDate)" } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed ("Aucune activite Copilot Chat sur 30 jours ({0} utilisateur(s) dans le rapport)" -f $rows.Count) `
-        -Evidence "Aucune valeur copilotChatLastActivityDate renseignee." `
-        -Remediation "Verifier l'acces a copilot.microsoft.com avec un utilisateur licencie et l'activation de Microsoft 365 Chat."
+        -Observed ((T 'c35.obs.warn') -f $rows.Count) `
+        -Evidence (T 'c35.ev.warn') `
+        -Remediation (T 'c35.rem.warn')
 }
 
 function Invoke-CceCheck36 {
@@ -162,9 +162,9 @@ function Invoke-CceCheck36 {
     $settings = Get-CceCopilotAdminSetting -Context $Context
 
     New-CceResult -Status 'Manuel' `
-        -Observed "Decision de gouvernance a documenter" `
-        -Evidence ($(if ($settings) { "beta/copilot/admin/settings : " + ($settings | ConvertTo-Json -Depth 4 -Compress) } else { "Aucun parametre Copilot lisible via Graph." })) `
-        -Remediation "Trancher et documenter : Copilot Chat limite aux donnees M365 ou etendu au web. Portail : admin.cloud.microsoft > Copilot > Contenu web."
+        -Observed (T 'c36.obs.manual') `
+        -Evidence ($(if ($settings) { "beta/copilot/admin/settings : " + ($settings | ConvertTo-Json -Depth 4 -Compress) } else { T 'c36.ev.none' })) `
+        -Remediation (T 'c36.rem.manual')
 }
 
 function Invoke-CceCheck37 {
@@ -175,9 +175,9 @@ function Invoke-CceCheck37 {
 
     if ($null -eq $rows) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Test fonctionnel requis' `
-            -Evidence "Rapport d'usage indisponible : la propagation ne peut pas etre constatee a distance." `
-            -Remediation "Ouvrir Word, Outlook et Teams avec un utilisateur licencie et verifier la presence du bouton Copilot."
+            -Observed (T 'c37.obs.manual') `
+            -Evidence (T 'c37.ev.manual') `
+            -Remediation (T 'c37.rem.manual')
     }
 
     $active = @($rows | Where-Object {
@@ -186,14 +186,14 @@ function Invoke-CceCheck37 {
 
     if ($active.Count -gt 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("Propagation confirmee : {0} utilisateur(s) ont utilise Copilot sur 30 jours" -f $active.Count) `
+            -Observed ((T 'c37.obs.ok') -f $active.Count) `
             -Evidence ($active | Select-Object -First 10 | ForEach-Object { $_.userPrincipalName } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed 'Aucune utilisation constatee : propagation non confirmee' `
-        -Evidence ("{0} utilisateur(s) licencie(s) remontes, aucun avec activite." -f $rows.Count) `
-        -Remediation "Effectuer un test manuel avec un utilisateur licencie (delai de propagation possible jusqu'a 72 h apres attribution)."
+        -Observed (T 'c37.obs.warn') `
+        -Evidence ((T 'c37.ev.warn') -f $rows.Count) `
+        -Remediation (T 'c37.rem.warn')
 }
 
 function Invoke-CceCheck38 {
@@ -206,23 +206,23 @@ function Invoke-CceCheck38 {
 
     if ($null -eq $rows) {
         return New-CceResult -Status 'Non conforme' `
-            -Observed "Rapports d'utilisation Copilot inaccessibles" `
-            -Evidence "L'appel a getMicrosoft365CopilotUsageUserDetail a echoue (droits Reports.Read.All manquants ou rapports desactives)." `
-            -Remediation "Accorder Reports.Read.All et verifier que l'anonymisation des rapports n'empeche pas l'analyse : admin.cloud.microsoft > Parametres > Rapports."
+            -Observed (T 'c38.obs.ko') `
+            -Evidence (T 'c38.ev.ko') `
+            -Remediation (T 'c38.rem.ko')
     }
 
     $anonymised = @($rows | Where-Object { "$($_.userPrincipalName)" -match '^[A-F0-9]{40,}$' }).Count
 
     if ($anonymised -gt 0) {
         return New-CceResult -Status 'Attention' `
-            -Observed ("Rapports accessibles mais anonymises ({0} lignes)" -f $rows.Count) `
-            -Evidence "Les identifiants utilisateurs sont masques : le suivi nominatif d'adoption est impossible." `
-            -Remediation "Desactiver l'anonymisation : admin.cloud.microsoft > Parametres > Parametres de l'organisation > Rapports."
+            -Observed ((T 'c38.obs.warn') -f $rows.Count) `
+            -Evidence (T 'c38.ev.warn') `
+            -Remediation (T 'c38.rem.warn')
     }
 
     New-CceResult -Status 'Conforme' `
-        -Observed ("Rapports d'utilisation Copilot accessibles : {0} ligne(s) sur 30 jours" -f $rows.Count) `
-        -Evidence "Endpoint getMicrosoft365CopilotUsageUserDetail(period='D30') interroge avec succes."
+        -Observed ((T 'c38.obs.ok') -f $rows.Count) `
+        -Evidence (T 'c38.ev.ok')
 }
 
 function Invoke-CceCheck39 {
@@ -230,9 +230,9 @@ function Invoke-CceCheck39 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Tableau de bord Viva Insights a verifier' `
-        -Evidence "Le tableau de bord d'adoption Copilot de Viva Insights n'expose pas d'API d'etat." `
-        -Remediation "Ouvrir insights.viva.office.com > Copilot dashboard et confirmer la presence de donnees."
+        -Observed (T 'c39.obs.manual') `
+        -Evidence (T 'c39.ev.manual') `
+        -Remediation (T 'c39.rem.manual')
 }
 
 function Invoke-CceCheck40 {
@@ -240,9 +240,9 @@ function Invoke-CceCheck40 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Decision de gouvernance a documenter' `
-        -Evidence "Bascule non exposee par API publique." `
-        -Remediation "Trancher et documenter le choix : admin.cloud.microsoft > Copilot > Parametres > Generation d'images."
+        -Observed (T 'c40.obs.manual') `
+        -Evidence (T 'c40.ev.manual') `
+        -Remediation (T 'c40.rem.manual')
 }
 
 function Invoke-CceCheck41 {
@@ -250,9 +250,9 @@ function Invoke-CceCheck41 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Decision de gouvernance a documenter' `
-        -Evidence "Bascule non exposee par API publique." `
-        -Remediation "Aligner le parametre sur la politique de l'organisation : admin.cloud.microsoft > Copilot > Parametres > Copilot dans Bing, Edge et Windows."
+        -Observed (T 'c41.obs.manual') `
+        -Evidence (T 'c41.ev.manual') `
+        -Remediation (T 'c41.rem.manual')
 }
 
 function Invoke-CceCheck42 {
@@ -260,7 +260,7 @@ function Invoke-CceCheck42 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Clause de responsabilite IA a verifier' `
-        -Evidence "Parametre non expose par API publique." `
-        -Remediation "Activer et valider le libelle : admin.cloud.microsoft > Copilot > Parametres > Clause d'exclusion de responsabilite."
+        -Observed (T 'c42.obs.manual') `
+        -Evidence (T 'c42.ev.manual') `
+        -Remediation (T 'c42.rem.manual')
 }

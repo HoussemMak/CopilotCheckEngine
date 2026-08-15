@@ -6,9 +6,9 @@ function Invoke-CceCheck43 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed "Parametre de gouvernance non expose par API" `
-        -Evidence "Le perimetre de creation d'agents se pilote depuis le centre d'administration Copilot, sans cmdlet publique." `
-        -Remediation "Restreindre la creation d'agents a un groupe dedie : admin.cloud.microsoft > Copilot > Agents."
+        -Observed (T 'c43.obs.manual') `
+        -Evidence (T 'c43.ev.manual') `
+        -Remediation (T 'c43.rem.manual')
 }
 
 function Invoke-CceCheck44 {
@@ -16,9 +16,9 @@ function Invoke-CceCheck44 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed "Parametre de gouvernance non expose par API" `
-        -Evidence "La delegation de publication d'agents n'est pas lisible par script." `
-        -Remediation "Limiter la publication aux administrateurs ou a un groupe designe : admin.cloud.microsoft > Copilot > Agents."
+        -Observed (T 'c44.obs.manual') `
+        -Evidence (T 'c44.ev.manual') `
+        -Remediation (T 'c44.rem.manual')
 }
 
 function Invoke-CceCheck45 {
@@ -33,9 +33,9 @@ function Invoke-CceCheck45 {
 
     if (-not $response) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Inventaire des applications non lisible' `
-            -Evidence "L'appel servicePrincipals a echoue (droits Application.Read.All)." `
-            -Remediation "Auditer les applications integrees : admin.cloud.microsoft > Parametres > Applications integrees."
+            -Observed (T 'c45.obs.error') `
+            -Evidence (T 'c45.ev.error') `
+            -Remediation (T 'c45.rem.error')
     }
 
     $apps = @($response.value)
@@ -44,11 +44,11 @@ function Invoke-CceCheck45 {
     })
 
     New-CceResult -Status $(if ($thirdParty.Count -eq 0) { 'Conforme' } else { 'Attention' }) `
-        -Observed ("{0} application(s) tierce(s) integree(s) sur {1} principal(aux) de service actifs" -f $thirdParty.Count, $apps.Count) `
+        -Observed ((T 'c45.obs.count') -f $thirdParty.Count, $apps.Count) `
         -Evidence ($thirdParty | Select-Object -First 25 |
-            ForEach-Object { "$($_.displayName) - editeur : $($_.publisherName)" } | ConvertTo-CceText -MaxItems 25) `
+            ForEach-Object { (T 'c45.ev.line') -f $_.displayName, $_.publisherName } | ConvertTo-CceText -MaxItems 25) `
         -Remediation $(if ($thirdParty.Count -eq 0) { '' } else {
-            "Passer en revue ces applications et desactiver celles qui ne sont pas explicitement approuvees : admin.cloud.microsoft > Parametres > Applications integrees."
+            T 'c45.rem.ko'
         })
 }
 
@@ -62,23 +62,23 @@ function Invoke-CceCheck46 {
 
     if (-not $response) {
         return New-CceResult -Status 'Manuel' `
-            -Observed 'Connecteurs Graph non lisibles' `
-            -Evidence "L'appel external/connections a echoue (droit ExternalConnection.Read.All requis)." `
-            -Remediation "Auditer les connecteurs : admin.cloud.microsoft > Recherche et intelligence > Connecteurs de donnees."
+            -Observed (T 'c46.obs.error') `
+            -Evidence (T 'c46.ev.error') `
+            -Remediation (T 'c46.rem.error')
     }
 
     $connections = @($response.value)
 
     if ($connections.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed 'Aucun connecteur Microsoft Graph actif' `
-            -Evidence "external/connections retourne 0 element : aucune source externe n'alimente l'index Copilot."
+            -Observed (T 'c46.obs.none') `
+            -Evidence (T 'c46.ev.none')
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed ("{0} connecteur(s) Microsoft Graph actif(s) a valider" -f $connections.Count) `
-        -Evidence ($connections | ForEach-Object { "$($_.name) ($($_.id)) - etat : $($_.state)" } | ConvertTo-CceText) `
-        -Remediation "Faire valider chaque connecteur par l'equipe securite : leur contenu devient interrogeable par Copilot."
+        -Observed ((T 'c46.obs.ko') -f $connections.Count) `
+        -Evidence ($connections | ForEach-Object { (T 'c46.ev.line') -f $_.name, $_.id, $_.state } | ConvertTo-CceText) `
+        -Remediation (T 'c46.rem.ko')
 }
 
 function Invoke-CceCheck47 {
@@ -96,24 +96,24 @@ function Invoke-CceCheck47 {
 
     if ($null -eq $records) {
         return New-CceResult -Status 'Non evalue' `
-            -Observed "Recherche dans le journal d'audit impossible" `
-            -Evidence "Search-UnifiedAuditLog a echoue : role 'Journaux d'audit avec affichage seul' requis." `
-            -Remediation "Attribuer le role d'audit puis relancer, ou verifier via purview.microsoft.com > Audit."
+            -Observed (T 'c47.obs.na') `
+            -Evidence (T 'c47.ev.na') `
+            -Remediation (T 'c47.rem.na')
     }
 
     $count = @($records).Count
 
     if ($count -gt 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("{0} interaction(s) Copilot journalisee(s) sur 7 jours" -f $count) `
+            -Observed ((T 'c47.obs.ok') -f $count) `
             -Evidence ($records | Select-Object -First 10 |
-                ForEach-Object { "$($_.CreationDate) - $($_.UserIds) - $($_.Operations)" } | ConvertTo-CceText)
+                ForEach-Object { (T 'c47.ev.line') -f $_.CreationDate, $_.UserIds, $_.Operations } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed 'Aucune interaction Copilot dans le journal d''audit sur 7 jours' `
-        -Evidence "Le journal repond mais ne contient aucun enregistrement CopilotInteraction : audit recemment active ou aucun usage." `
-        -Remediation "Confirmer que l'audit unifie est actif (controle 26) puis reverifier apres une utilisation reelle de Copilot."
+        -Observed (T 'c47.obs.none') `
+        -Evidence (T 'c47.ev.none') `
+        -Remediation (T 'c47.rem.none')
 }
 
 function Invoke-CceCheck48 {
@@ -121,9 +121,9 @@ function Invoke-CceCheck48 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Livrable documentaire' `
-        -Evidence "Aucune source technique : depend d'un document interne." `
-        -Remediation "Formaliser une convention de nommage des agents et la publier aux equipes."
+        -Observed (T 'c48.obs.manual') `
+        -Evidence (T 'c48.ev.manual') `
+        -Remediation (T 'c48.rem.manual')
 }
 
 function Invoke-CceCheck49 {
@@ -131,9 +131,9 @@ function Invoke-CceCheck49 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Livrable organisationnel' `
-        -Evidence "Aucune source technique : depend d'un processus interne." `
-        -Remediation "Definir et outiller un circuit d'approbation avant publication d'un agent."
+        -Observed (T 'c49.obs.manual') `
+        -Evidence (T 'c49.ev.manual') `
+        -Remediation (T 'c49.rem.manual')
 }
 
 function Invoke-CceCheck50 {
@@ -141,9 +141,9 @@ function Invoke-CceCheck50 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Livrable documentaire' `
-        -Evidence "Aucune source technique : depend d'un document interne." `
-        -Remediation "Rediger, publier et communiquer la politique d'usage des agents Copilot."
+        -Observed (T 'c50.obs.manual') `
+        -Evidence (T 'c50.ev.manual') `
+        -Remediation (T 'c50.rem.manual')
 }
 
 function Invoke-CceCheck51 {
@@ -151,7 +151,7 @@ function Invoke-CceCheck51 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Rituel de gouvernance' `
-        -Evidence "Aucune source technique : depend d'un rituel planifie." `
-        -Remediation "Planifier une revue trimestrielle des agents deployes et en conserver la trace."
+        -Observed (T 'c51.obs.manual') `
+        -Evidence (T 'c51.ev.manual') `
+        -Remediation (T 'c51.rem.manual')
 }

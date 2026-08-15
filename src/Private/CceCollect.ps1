@@ -114,7 +114,7 @@ function Invoke-CceGraphRequest {
         Invoke-MgGraphRequest -Method $Method -Uri $Uri -OutputType PSObject -ErrorAction Stop
     }
     catch {
-        if (-not $Quiet) { Write-CceLog "Graph $Method $Uri : $($_.Exception.Message)" -Level WARN }
+        if (-not $Quiet) { Write-CceLog ((T 'core.graph.failed') -f $Method, $Uri, $_.Exception.Message) -Level WARN }
         $null
     }
 }

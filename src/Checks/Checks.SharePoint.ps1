@@ -9,7 +9,7 @@ function Get-CceAllSpoSite {
     if ($Context.Cache.ContainsKey('SpoSites')) { return $Context.Cache['SpoSites'] }
     if (-not $Context.Services.SharePoint) { return @() }
 
-    Write-CceLog 'Inventaire des sites SharePoint (peut prendre du temps)...' -Level INFO
+    Write-CceLog (T 'collect.spo.sites') -Level INFO
     $sites = Get-CceSafe { Get-SPOSite -Limit All -ErrorAction Stop } -What 'Get-SPOSite'
     $Context.Cache['SpoSites'] = @($sites)
     $Context.Cache['SpoSites']
@@ -29,10 +29,10 @@ function Invoke-CceCheck16 {
     $observed = "SharingCapability=$sharing | DefaultSharingLinkType=$linkType | DefaultLinkPermission=$linkPerm"
     $issues = [System.Collections.Generic.List[string]]::new()
 
-    if ($sharing -eq 'ExternalUserAndGuestSharing') { $issues.Add("Le partage anonyme (liens 'Tout le monde') est autorise au niveau tenant.") }
-    elseif ($sharing -eq 'ExternalUserSharingOnly') { $issues.Add('Le partage avec de nouveaux utilisateurs externes est autorise.') }
+    if ($sharing -eq 'ExternalUserAndGuestSharing') { $issues.Add((T 'c16.ev.anon')) }
+    elseif ($sharing -eq 'ExternalUserSharingOnly') { $issues.Add((T 'c16.ev.external')) }
 
-    if ($linkType -ne 'Internal' -and $linkType -ne 'Direct') { $issues.Add("Le type de lien par defaut est '$linkType' au lieu de 'Internal'.") }
+    if ($linkType -ne 'Internal' -and $linkType -ne 'Direct') { $issues.Add(((T 'c16.ev.linktype') -f $linkType)) }
 
     if ($issues.Count -eq 0) {
         return New-CceResult -Status 'Conforme' -Observed $observed -Evidence $observed
@@ -57,18 +57,18 @@ function Invoke-CceCheck17 {
 
     if ($sharing -ne 'ExternalUserAndGuestSharing') {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("Sans objet : partage anonyme desactive (SharingCapability={0})" -f $sharing) `
-            -Evidence "RequireAnonymousLinksExpireInDays=$days, mais aucun lien anonyme ne peut etre cree."
+            -Observed ((T 'c17.obs.na') -f $sharing) `
+            -Evidence ((T 'c17.ev.na') -f $days)
     }
 
     if ($days -gt 0 -and $days -le 7) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("RequireAnonymousLinksExpireInDays = {0}" -f $days) -Evidence "Expiration des liens anonymes : $days jour(s)."
+            -Observed ("RequireAnonymousLinksExpireInDays = {0}" -f $days) -Evidence ((T 'c17.ev.ok') -f $days)
     }
 
     New-CceResult -Status 'Non conforme' `
         -Observed ("RequireAnonymousLinksExpireInDays = {0}" -f $days) `
-        -Evidence "Le partage anonyme est actif et l'expiration est de $days jour(s) (valeur -1 = jamais)." `
+        -Evidence ((T 'c17.ev.ko') -f $days) `
         -Remediation "Set-SPOTenant -RequireAnonymousLinksExpireInDays 7"
 }
 
@@ -86,17 +86,17 @@ function Invoke-CceCheck18 {
 
     if ($overshared.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("0 site en partage anonyme sur {0} site(s) analyses" -f $sites.Count) `
-            -Evidence "Aucun site avec SharingCapability = ExternalUserAndGuestSharing."
+            -Observed ((T 'c18.obs.ok') -f $sites.Count) `
+            -Evidence (T 'c18.ev.ok')
     }
 
     $status = if ($sensitive.Count -gt 0) { 'Non conforme' } else { 'Attention' }
 
     New-CceResult -Status $status `
-        -Observed ("{0} site(s) en partage anonyme sur {1}, dont {2} site(s) a intitule sensible" -f $overshared.Count, $sites.Count, $sensitive.Count) `
-        -Evidence (@($sensitive | ForEach-Object { "[SENSIBLE] $($_.Title) - $($_.Url)" }) +
+        -Observed ((T 'c18.obs.ko') -f $overshared.Count, $sites.Count, $sensitive.Count) `
+        -Evidence (@($sensitive | ForEach-Object { (T 'c18.ev.sensitive') -f $_.Title, $_.Url }) +
                    @($overshared | Where-Object { $_ -notin $sensitive } | ForEach-Object { "$($_.Title) - $($_.Url)" }) | ConvertTo-CceText -MaxItems 30) `
-        -Remediation "Restreindre les sites concernes : Set-SPOSite -Identity <url> -SharingCapability ExistingExternalUserSharingOnly. Traiter en priorite les sites RH / Finance / Direction."
+        -Remediation (T 'c18.rem.ko')
 }
 
 function Invoke-CceCheck19 {
@@ -108,8 +108,8 @@ function Invoke-CceCheck19 {
 
     $users = @(Get-CceCopilotUser -Context $Context | Where-Object { $_.AccountEnabled -and "$($_.UserType)" -ne 'Guest' })
     if ($users.Count -eq 0) {
-        return New-CceResult -Status 'Non evalue' -Observed 'Aucun utilisateur Copilot actif a controler' `
-            -Evidence 'Le controle 3 doit etre conforme avant de verifier le provisionnement OneDrive.'
+        return New-CceResult -Status 'Non evalue' -Observed (T 'c19.obs.none') `
+            -Evidence (T 'c19.ev.none')
     }
 
     $personal = Get-CceSafe {
@@ -123,14 +123,14 @@ function Invoke-CceCheck19 {
 
     if ($missing.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
-            -Observed ("{0}/{0} utilisateur(s) Copilot disposent d'un OneDrive" -f $users.Count) `
-            -Evidence ("{0} site(s) OneDrive detectes sur le tenant." -f @($personal).Count)
+            -Observed ((T 'c19.obs.ok') -f $users.Count) `
+            -Evidence ((T 'c19.ev.ok') -f @($personal).Count)
     }
 
     New-CceResult -Status 'Attention' `
-        -Observed ("{0} utilisateur(s) Copilot sur {1} sans OneDrive provisionne" -f $missing.Count, $users.Count) `
+        -Observed ((T 'c19.obs.ko') -f $missing.Count, $users.Count) `
         -Evidence ($missing | ForEach-Object { $_.UserPrincipalName } | ConvertTo-CceText) `
-        -Remediation "Provisionner les OneDrive : Request-SPOPersonalSite -UserEmails <upn>, ou faire ouvrir OneDrive une fois par l'utilisateur."
+        -Remediation (T 'c19.rem.ko')
 }
 
 function Invoke-CceCheck20 {
@@ -141,9 +141,9 @@ function Invoke-CceCheck20 {
     $evidence = if ($tenant) { "SearchResolveExactEmailOrUPN=$($tenant.SearchResolveExactEmailOrUPN)" } else { '' }
 
     New-CceResult -Status 'Manuel' `
-        -Observed "Test fonctionnel requis (aucune API d'etat de l'index)" `
-        -Evidence ("La sante de l'index Microsoft Search n'est pas exposee par cmdlet.`n$evidence") `
-        -Remediation "Se connecter a microsoft365.com/search avec un compte licencie et valider que les resultats SharePoint, OneDrive et Exchange remontent."
+        -Observed (T 'c20.obs.manual') `
+        -Evidence ((T 'c20.ev.manual') -f $evidence) `
+        -Remediation (T 'c20.rem.manual')
 }
 
 function Invoke-CceCheck21 {
@@ -151,9 +151,9 @@ function Invoke-CceCheck21 {
     [CmdletBinding()] param($Context)
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Verification par site requise (PnP.PowerShell)' `
-        -Evidence "La propriete NoCrawl se lit site par site : Connect-PnPOnline -Url <site> ; Get-PnPWeb -Includes NoCrawl. Une application Entra ID dediee est necessaire pour PnP." `
-        -Remediation "Auditer NoCrawl sur les sites metier critiques et le repositionner a False pour qu'ils soient indexes par Copilot."
+        -Observed (T 'c21.obs.manual') `
+        -Evidence (T 'c21.ev.manual') `
+        -Remediation (T 'c21.rem.manual')
 }
 
 function Invoke-CceCheck22 {
@@ -169,10 +169,10 @@ function Invoke-CceCheck22 {
         $isEnabled = $value -match 'Enabled|True'
 
         return New-CceResult -Status $(if ($isEnabled) { 'Attention' } else { 'Conforme' }) `
-            -Observed ("Restricted SharePoint Search : {0}" -f $value) `
+            -Observed ((T 'c22.obs.mode') -f $value) `
             -Evidence "Get-SPOTenantRestrictedSearchMode : $value" `
             -Remediation $(if ($isEnabled) {
-                "Restricted Search est actif : Copilot ne verra que les sites de la liste autorisee. Verifier Get-SPOTenantRestrictedSearchAllowedList et y inclure les sites metier critiques."
+                T 'c22.rem.enabled'
             } else { '' })
     }
 
@@ -185,9 +185,9 @@ function Invoke-CceCheck22 {
     }
 
     New-CceResult -Status 'Manuel' `
-        -Observed 'Mode de recherche restreinte non lisible sur ce tenant' `
-        -Evidence "Ni Get-SPOTenantRestrictedSearchMode ni la propriete IsContentAccessGoverned ne sont disponibles." `
-        -Remediation "Verifier Restricted SharePoint Search dans le centre d'administration SharePoint."
+        -Observed (T 'c22.obs.manual') `
+        -Evidence (T 'c22.ev.manual') `
+        -Remediation (T 'c22.rem.manual')
 }
 
 function Invoke-CceCheck23 {
@@ -201,7 +201,7 @@ function Invoke-CceCheck23 {
     $ok = $quota -ge 1048576
 
     New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Attention' }) `
-        -Observed ("OneDriveStorageQuota = {0} Mo ({1:N2} To)" -f $quota, ($quota / 1048576)) `
-        -Evidence "Get-SPOTenant : OneDriveStorageQuota = $quota Mo" `
+        -Observed ((T 'c23.obs.value') -f $quota, ($quota / 1048576)) `
+        -Evidence ((T 'c23.ev.value') -f $quota) `
         -Remediation $(if ($ok) { '' } else { "Set-SPOTenant -OneDriveStorageQuota 1048576" })
 }

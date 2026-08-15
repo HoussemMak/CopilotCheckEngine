@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
     Gestion des connexions aux services Microsoft 365.
     Chaque service se connecte independamment : l'echec de l'un n'empeche pas les
@@ -19,7 +19,7 @@ function Connect-CceGraph {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
 
-    Write-CceLog 'Connexion a Microsoft Graph...' -Level STEP
+    Write-CceLog ((T 'conn.start') -f 'Microsoft Graph') -Level STEP
 
     try {
         Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
@@ -49,11 +49,11 @@ function Connect-CceGraph {
         }
 
         $Context.Services.Graph = $true
-        Write-CceLog "Graph connecte - tenant '$($Context.Tenant.Name)' ($($Context.Tenant.Id))" -Level OK
+        Write-CceLog ((T 'conn.graph.ok') -f $Context.Tenant.Name, $Context.Tenant.Id) -Level OK
     }
     catch {
         $Context.ServiceError['Graph'] = $_.Exception.Message
-        Write-CceLog "Connexion Graph impossible : $($_.Exception.Message)" -Level ERROR
+        Write-CceLog ((T 'conn.failed') -f 'Microsoft Graph', $_.Exception.Message) -Level ERROR
     }
 }
 
@@ -61,7 +61,7 @@ function Connect-CceExchange {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
 
-    Write-CceLog 'Connexion a Exchange Online...' -Level STEP
+    Write-CceLog ((T 'conn.start') -f 'Exchange Online') -Level STEP
 
     try {
         Import-Module ExchangeOnlineManagement -ErrorAction Stop
@@ -78,11 +78,11 @@ function Connect-CceExchange {
 
         Connect-ExchangeOnline @params
         $Context.Services.Exchange = $true
-        Write-CceLog 'Exchange Online connecte' -Level OK
+        Write-CceLog ((T 'conn.ok') -f 'Exchange Online') -Level OK
     }
     catch {
         $Context.ServiceError['Exchange'] = $_.Exception.Message
-        Write-CceLog "Connexion Exchange Online impossible : $($_.Exception.Message)" -Level ERROR
+        Write-CceLog ((T 'conn.failed') -f 'Exchange Online', $_.Exception.Message) -Level ERROR
     }
 }
 
@@ -90,7 +90,7 @@ function Connect-CcePurview {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
 
-    Write-CceLog 'Connexion a Purview (Security & Compliance)...' -Level STEP
+    Write-CceLog ((T 'conn.start') -f 'Purview (Security & Compliance)') -Level STEP
 
     try {
         Import-Module ExchangeOnlineManagement -ErrorAction Stop
@@ -107,11 +107,11 @@ function Connect-CcePurview {
 
         Connect-IPPSSession @params
         $Context.Services.Purview = $true
-        Write-CceLog 'Purview connecte' -Level OK
+        Write-CceLog ((T 'conn.ok') -f 'Purview') -Level OK
     }
     catch {
         $Context.ServiceError['Purview'] = $_.Exception.Message
-        Write-CceLog "Connexion Purview impossible : $($_.Exception.Message)" -Level ERROR
+        Write-CceLog ((T 'conn.failed') -f 'Purview', $_.Exception.Message) -Level ERROR
     }
 }
 
@@ -119,7 +119,7 @@ function Connect-CceSharePoint {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
 
-    Write-CceLog 'Connexion a SharePoint Online...' -Level STEP
+    Write-CceLog ((T 'conn.start') -f 'SharePoint Online') -Level STEP
 
     $adminUrl = $Auth.SharePointAdminUrl
     if (-not $adminUrl -and $Context.Tenant.DefaultDomain) {
@@ -128,7 +128,7 @@ function Connect-CceSharePoint {
     }
 
     if (-not $adminUrl) {
-        $Context.ServiceError['SharePoint'] = "URL d'administration SharePoint introuvable (fournir -SharePointAdminUrl)"
+        $Context.ServiceError['SharePoint'] = T 'conn.spo.nourl'
         Write-CceLog $Context.ServiceError['SharePoint'] -Level ERROR
         return
     }
@@ -144,11 +144,11 @@ function Connect-CceSharePoint {
 
         Connect-SPOService @params
         $Context.Services.SharePoint = $true
-        Write-CceLog "SharePoint Online connecte ($adminUrl)" -Level OK
+        Write-CceLog ((T 'conn.spo.ok') -f $adminUrl) -Level OK
     }
     catch {
         $Context.ServiceError['SharePoint'] = $_.Exception.Message
-        Write-CceLog "Connexion SharePoint impossible : $($_.Exception.Message)" -Level ERROR
+        Write-CceLog ((T 'conn.failed') -f 'SharePoint Online', $_.Exception.Message) -Level ERROR
     }
 }
 
@@ -156,7 +156,7 @@ function Connect-CceTeams {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
 
-    Write-CceLog 'Connexion a Microsoft Teams...' -Level STEP
+    Write-CceLog ((T 'conn.start') -f 'Microsoft Teams') -Level STEP
 
     try {
         Import-Module MicrosoftTeams -ErrorAction Stop
@@ -170,11 +170,11 @@ function Connect-CceTeams {
 
         Connect-MicrosoftTeams @params | Out-Null
         $Context.Services.Teams = $true
-        Write-CceLog 'Microsoft Teams connecte' -Level OK
+        Write-CceLog ((T 'conn.ok') -f 'Microsoft Teams') -Level OK
     }
     catch {
         $Context.ServiceError['Teams'] = $_.Exception.Message
-        Write-CceLog "Connexion Teams impossible : $($_.Exception.Message)" -Level ERROR
+        Write-CceLog ((T 'conn.failed') -f 'Microsoft Teams', $_.Exception.Message) -Level ERROR
     }
 }
 
@@ -198,14 +198,14 @@ function Connect-CceServices {
     if ($Services -contains 'Teams')      { Connect-CceTeams      -Context $Context -Auth $Auth }
 
     $connected = ($Context.Services.GetEnumerator() | Where-Object { $_.Value }).Count
-    Write-CceLog "$connected service(s) connecte(s) sur $($Context.Services.Count)" -Level INFO
+    Write-CceLog ((T 'conn.summary') -f $connected, $Context.Services.Count) -Level INFO
 }
 
 function Disconnect-CceServices {
     [CmdletBinding()]
     param([Parameter(Mandatory)] $Context)
 
-    Write-CceLog 'Fermeture des sessions...' -Level STEP
+    Write-CceLog (T 'conn.disconnect') -Level STEP
 
     if ($Context.Services.Graph)      { Get-CceSafe { Disconnect-MgGraph -ErrorAction Stop } -What 'Disconnect-MgGraph' | Out-Null }
     if ($Context.Services.Exchange -or $Context.Services.Purview) {

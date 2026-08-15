@@ -1,4 +1,4 @@
-﻿#Requires -Version 7.0
+#Requires -Version 7.0
 <# Export du rapport au format HTML autonome (aucune dependance externe). #>
 
 function ConvertTo-CceHtmlEncoded {
@@ -10,13 +10,14 @@ function ConvertTo-CceHtmlEncoded {
 }
 
 function Get-CceStatusSlug {
+    <# Jeton canonique -> classe CSS. #>
     [CmdletBinding()] param([string] $Status)
 
     switch ($Status) {
-        'Conforme'     { 'ok' }
-        'Non conforme' { 'ko' }
-        'Attention'    { 'warn' }
-        'Manuel'       { 'manual' }
+        'Compliant'    { 'ok' }
+        'NonCompliant' { 'ko' }
+        'Warning'      { 'warn' }
+        'Manual'       { 'manual' }
         default        { 'na' }
     }
 }
@@ -33,40 +34,44 @@ function Export-CceHtml {
         [Parameter(Mandatory)] [string] $Path
     )
 
+    $enc = { param($t) [System.Net.WebUtility]::HtmlEncode([string] $t) }
+
     $stats = Get-CceStatistics -Results $Results
     $tenantLabel = if ($Context.Tenant.Name) { $Context.Tenant.Name } else { $Context.Tenant.Id }
     $generated = $Context.StartedAt.ToString('dd/MM/yyyy HH:mm')
 
     # --- Cartes d'indicateurs ---
     $kpis = @(
-        @{ Label = 'Conformes';        Value = $stats.Conforme;    Slug = 'ok' }
-        @{ Label = 'Non conformes';    Value = $stats.NonConforme; Slug = 'ko' }
-        @{ Label = 'Points d''attention'; Value = $stats.Attention; Slug = 'warn' }
-        @{ Label = 'Verif. manuelle';  Value = $stats.Manuel;      Slug = 'manual' }
-        @{ Label = 'Non evalues';      Value = $stats.NonEvalue;   Slug = 'na' }
+        @{ Label = T 'html.kpi.compliant';    Value = $stats.Conforme;    Slug = 'ok' }
+        @{ Label = T 'html.kpi.noncompliant'; Value = $stats.NonConforme; Slug = 'ko' }
+        @{ Label = T 'html.kpi.warning';      Value = $stats.Attention;   Slug = 'warn' }
+        @{ Label = T 'html.kpi.manual';       Value = $stats.Manuel;      Slug = 'manual' }
+        @{ Label = T 'html.kpi.notevaluated'; Value = $stats.NonEvalue;   Slug = 'na' }
     )
 
     $kpiHtml = ($kpis | ForEach-Object {
-        "<div class=`"kpi kpi-$($_.Slug)`"><span class=`"kpi-value`">$($_.Value)</span><span class=`"kpi-label`">$($_.Label)</span></div>"
+        "<div class=`"kpi kpi-$($_.Slug)`"><span class=`"kpi-value`">$($_.Value)</span><span class=`"kpi-label`">$(& $enc $_.Label)</span></div>"
     }) -join "`n"
 
     # --- Repartition par priorite ---
     $priorityHtml = ($stats.ParPriorite | ForEach-Object {
         $pct = $_.TauxPourcent
+        $meta = (T 'html.bar.meta') -f $_.Conforme, $_.Evaluables, $pct, $_.Total
         @"
 <div class="bar-row">
-  <div class="bar-head"><span>$([System.Net.WebUtility]::HtmlEncode($_.Priorite))</span><span class="bar-meta">$($_.Conforme)/$($_.Evaluables) evaluees &middot; $pct&nbsp;% <small>($($_.Total) exigences)</small></span></div>
+  <div class="bar-head"><span>$(& $enc $_.Libelle)</span><span class="bar-meta">$meta</span></div>
   <div class="bar"><div class="bar-fill" style="width:$pct%"></div></div>
 </div>
 "@
     }) -join "`n"
 
-    # --- Repartition par section ---
+    # --- Repartition par domaine ---
     $sectionStatsHtml = ($stats.ParSection | Sort-Object Section | ForEach-Object {
         $pct = $_.TauxPourcent
+        $meta = (T 'html.bar.metasection') -f $_.Conforme, $_.Evaluables, $pct, $_.Total
         @"
 <div class="bar-row">
-  <div class="bar-head"><span>$([System.Net.WebUtility]::HtmlEncode($_.Section))</span><span class="bar-meta">$($_.Conforme)/$($_.Evaluables) evaluees &middot; $pct&nbsp;% <small>($($_.Total))</small></span></div>
+  <div class="bar-head"><span>$(& $enc $_.Section)</span><span class="bar-meta">$meta</span></div>
   <div class="bar"><div class="bar-fill" style="width:$pct%"></div></div>
 </div>
 "@
@@ -75,46 +80,48 @@ function Export-CceHtml {
     # --- Etat des connexions ---
     $servicesHtml = ($Context.Services.GetEnumerator() | ForEach-Object {
         $cls = if ($_.Value) { 'svc-on' } else { 'svc-off' }
-        $txt = if ($_.Value) { 'connecte' } else { 'non connecte' }
-        "<span class=`"svc $cls`">$($_.Key) : $txt</span>"
+        $state = if ($_.Value) { T 'html.svc.on' } else { T 'html.svc.off' }
+        "<span class=`"svc $cls`">$(& $enc ((T 'html.svc') -f $_.Key, $state))</span>"
     }) -join ' '
 
-    # --- Detail des controles, groupes par section ---
+    # --- Detail des controles, groupes par domaine ---
     $sectionsHtml = [System.Collections.Generic.List[string]]::new()
 
     foreach ($group in ($Results | Group-Object Section)) {
         $rows = foreach ($r in ($group.Group | Sort-Object Id)) {
             $slug = Get-CceStatusSlug -Status $r.Statut
             $ref = if ($r.Reference) {
-                "<a href=`"$([System.Net.WebUtility]::HtmlEncode($r.Reference))`" target=`"_blank`" rel=`"noopener`">Documentation Microsoft</a>"
+                "<a href=`"$(& $enc $r.Reference)`" target=`"_blank`" rel=`"noopener`">$(& $enc (T 'html.link.doc'))</a>"
             } else { '' }
 
             $remediation = if ($r.ActionCorrective) {
-                "<div class=`"block block-fix`"><span class=`"block-title`">Action corrective</span>$(ConvertTo-CceHtmlEncoded $r.ActionCorrective)</div>"
+                "<div class=`"block block-fix`"><span class=`"block-title`">$(& $enc (T 'html.block.remediation'))</span>$(ConvertTo-CceHtmlEncoded $r.ActionCorrective)</div>"
             } else { '' }
 
             $evidence = if ($r.Preuve) {
-                "<details class=`"evidence`"><summary>Preuve collectee</summary><pre>$([System.Net.WebUtility]::HtmlEncode($r.Preuve))</pre></details>"
+                "<details class=`"evidence`"><summary>$(& $enc (T 'html.details.evidence'))</summary><pre>$(& $enc $r.Preuve)</pre></details>"
             } else { '' }
 
+            $searchText = & $enc ("$($r.Id) $($r.Requirement) $($r.Categorie) $($r.ValeurConstatee)").ToLower()
+
             @"
-<article class="item" data-status="$slug" data-priority="$([System.Net.WebUtility]::HtmlEncode($r.Priorite))" data-text="$([System.Net.WebUtility]::HtmlEncode(("$($r.Id) $($r.Requirement) $($r.Categorie) $($r.ValeurConstatee)").ToLower()))">
+<article class="item" data-status="$slug" data-priority="$(& $enc $r.Priorite)" data-text="$searchText">
   <header class="item-head">
     <span class="item-id">#$($r.Id)</span>
-    <h3>$([System.Net.WebUtility]::HtmlEncode($r.Requirement))</h3>
-    <span class="badge badge-$slug">$([System.Net.WebUtility]::HtmlEncode($r.Statut))</span>
-    <span class="prio prio-$([System.Net.WebUtility]::HtmlEncode($r.Priorite).ToLower())">$([System.Net.WebUtility]::HtmlEncode($r.Priorite))</span>
+    <h3>$(& $enc $r.Requirement)</h3>
+    <span class="badge badge-$slug">$(& $enc $r.StatutLibelle)</span>
+    <span class="prio prio-$($r.Priorite.ToLower())">$(& $enc $r.PrioriteLibelle)</span>
   </header>
   <div class="item-body">
-    <div class="block"><span class="block-title">Valeur constatee sur le tenant</span>$(ConvertTo-CceHtmlEncoded $r.ValeurConstatee)</div>
-    <div class="block"><span class="block-title">Valeur attendue</span>$(ConvertTo-CceHtmlEncoded $r.ValeurAttendue)</div>
+    <div class="block"><span class="block-title">$(& $enc (T 'html.block.observed'))</span>$(ConvertTo-CceHtmlEncoded $r.ValeurConstatee)</div>
+    <div class="block"><span class="block-title">$(& $enc (T 'html.block.expected'))</span>$(ConvertTo-CceHtmlEncoded $r.ValeurAttendue)</div>
     $remediation
     $evidence
     <details class="more">
-      <summary>Pourquoi et comment configurer</summary>
-      <div class="block"><span class="block-title">Pourquoi</span>$(ConvertTo-CceHtmlEncoded $r.Pourquoi)</div>
-      <div class="block"><span class="block-title">Ou et comment configurer</span>$(ConvertTo-CceHtmlEncoded $r.Procedure)</div>
-      <div class="block"><span class="block-title">Commande de verification</span><code>$([System.Net.WebUtility]::HtmlEncode($r.CommandeVerification))</code></div>
+      <summary>$(& $enc (T 'html.details.more'))</summary>
+      <div class="block"><span class="block-title">$(& $enc (T 'html.block.why'))</span>$(ConvertTo-CceHtmlEncoded $r.Pourquoi)</div>
+      <div class="block"><span class="block-title">$(& $enc (T 'html.block.howto'))</span>$(ConvertTo-CceHtmlEncoded $r.Procedure)</div>
+      <div class="block"><span class="block-title">$(& $enc (T 'html.block.command'))</span><code>$(& $enc $r.CommandeVerification)</code></div>
       <div class="block">$ref</div>
     </details>
   </div>
@@ -124,7 +131,7 @@ function Export-CceHtml {
 
         $sectionsHtml.Add(@"
 <section class="group">
-  <h2>$([System.Net.WebUtility]::HtmlEncode($group.Name)) <span class="group-count">$($group.Count)</span></h2>
+  <h2>$(& $enc $group.Name) <span class="group-count">$($group.Count)</span></h2>
   $($rows -join "`n")
 </section>
 "@)
@@ -195,7 +202,7 @@ header.top h1{margin:0 0 6px;font-size:1.65rem;letter-spacing:-.01em}
 .badge-warn{background:var(--warn-bg);color:var(--warn)} .badge-manual{background:var(--manual-bg);color:var(--manual)}
 .badge-na{background:var(--na-bg);color:var(--na)}
 .prio{font-size:.72rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
-.prio-bloquant{color:var(--ko);border-color:var(--ko)}
+.prio-blocking{color:var(--ko);border-color:var(--ko)}
 .item-body{padding:14px 16px;font-size:.9rem}
 .block{margin-bottom:10px}
 .block-title{display:block;font-size:.73rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}
@@ -256,24 +263,28 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     $rate = $stats.TauxConformite
     $gaugeColor = if ($rate -ge 80) { 'var(--ok)' } elseif ($rate -ge 50) { 'var(--warn)' } else { 'var(--ko)' }
 
+    $gaugeText = (T 'html.gauge.text') -f $stats.Conforme, $stats.Evaluables, $stats.Total, $stats.Manuel, $stats.NonEvalue
+    $gaugeBlocking = (T 'html.gauge.blocking') -f $stats.BloquantsKo.Count
+    $footer = (T 'html.footer') -f $generated, (& $enc $Context.Config.CatalogTitle), (& $enc $Context.Config.CatalogVersion)
+
     $html = @"
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="$(Get-CceLanguage)">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Copilot Check Engine - $([System.Net.WebUtility]::HtmlEncode($tenantLabel))</title>
+<title>$(& $enc ((T 'html.title') -f $tenantLabel))</title>
 <style>$css</style>
 </head>
 <body>
 <div class="wrap">
 
 <header class="top">
-  <h1>Microsoft 365 Copilot &mdash; etat de configuration du tenant</h1>
+  <h1>$(T 'html.h1')</h1>
   <div class="sub">
-    Tenant : <strong>$([System.Net.WebUtility]::HtmlEncode($tenantLabel))</strong>
-    &nbsp;&middot;&nbsp; $([System.Net.WebUtility]::HtmlEncode($Context.Tenant.Id))
-    &nbsp;&middot;&nbsp; Genere le $generated
+    $(& $enc (T 'html.tenant')) <strong>$(& $enc $tenantLabel)</strong>
+    &nbsp;&middot;&nbsp; $(& $enc $Context.Tenant.Id)
+    &nbsp;&middot;&nbsp; $(& $enc ((T 'html.generated') -f $generated))
   </div>
   <div>$servicesHtml</div>
 </header>
@@ -281,39 +292,34 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
 <div class="score">
   <div class="gauge" style="background:conic-gradient($gaugeColor $($rate * 3.6)deg, var(--na-bg) 0)"><span>$rate&nbsp;%</span></div>
   <div class="score-text">
-    <h2>Taux de conformite sur les controles evalues automatiquement</h2>
-    <p>$($stats.Conforme) configuration(s) conforme(s) sur $($stats.Evaluables) evaluee(s) automatiquement, sur un referentiel de $($stats.Total) exigences.
-    $($stats.Manuel) exigence(s) relevent d'une verification manuelle, $($stats.NonEvalue) n'ont pas pu etre evaluees.</p>
-    <p><strong>$($stats.BloquantsKo.Count)</strong> exigence(s) <strong>bloquante(s)</strong> non conforme(s).</p>
+    <h2>$(& $enc (T 'html.gauge.title'))</h2>
+    <p>$(& $enc $gaugeText)</p>
+    <p>$gaugeBlocking</p>
   </div>
 </div>
 
 <div class="kpis">$kpiHtml</div>
 
 <div class="panels">
-  <div class="panel"><h2>Conformite par priorite</h2>$priorityHtml</div>
-  <div class="panel"><h2>Conformite par domaine</h2>$sectionStatsHtml</div>
+  <div class="panel"><h2>$(& $enc (T 'html.panel.priority'))</h2>$priorityHtml</div>
+  <div class="panel"><h2>$(& $enc (T 'html.panel.section'))</h2>$sectionStatsHtml</div>
 </div>
 
 <div class="toolbar">
-  <input id="search" type="search" placeholder="Rechercher une exigence, une categorie, une valeur...">
-  <button class="chip active" data-kind="status" data-value="all">Tous</button>
-  <button class="chip" data-kind="status" data-value="ko">Non conformes</button>
-  <button class="chip" data-kind="status" data-value="warn">Attention</button>
-  <button class="chip" data-kind="status" data-value="ok">Conformes</button>
-  <button class="chip" data-kind="status" data-value="manual">Manuels</button>
-  <button class="chip active" data-kind="priority" data-value="all">Toutes priorites</button>
-  <button class="chip" data-kind="priority" data-value="Bloquant">Bloquant</button>
-  <button class="chip" data-kind="priority" data-value="Recommande">Recommande</button>
+  <input id="search" type="search" placeholder="$(& $enc (T 'html.search'))">
+  <button class="chip active" data-kind="status" data-value="all">$(& $enc (T 'html.chip.all'))</button>
+  <button class="chip" data-kind="status" data-value="ko">$(& $enc (T 'status.NonCompliant'))</button>
+  <button class="chip" data-kind="status" data-value="warn">$(& $enc (T 'status.Warning'))</button>
+  <button class="chip" data-kind="status" data-value="ok">$(& $enc (T 'status.Compliant'))</button>
+  <button class="chip" data-kind="status" data-value="manual">$(& $enc (T 'status.Manual'))</button>
+  <button class="chip active" data-kind="priority" data-value="all">$(& $enc (T 'html.chip.allprio'))</button>
+  <button class="chip" data-kind="priority" data-value="Blocking">$(& $enc (T 'priority.Blocking'))</button>
+  <button class="chip" data-kind="priority" data-value="Recommended">$(& $enc (T 'priority.Recommended'))</button>
 </div>
 
 $($sectionsHtml -join "`n")
 
-<footer>
-  Rapport genere par <strong>Copilot Check Engine</strong> le $generated &mdash;
-  referentiel : $([System.Net.WebUtility]::HtmlEncode($Context.Config.CatalogTitle)) v$([System.Net.WebUtility]::HtmlEncode($Context.Config.CatalogVersion)).
-  Les statuts « Manuel » signalent les exigences sans API publique : elles doivent etre validees a la main.
-</footer>
+<footer>$footer</footer>
 
 </div>
 <script>$js</script>
@@ -322,6 +328,6 @@ $($sectionsHtml -join "`n")
 "@
 
     $html | Set-Content -Path $Path -Encoding utf8
-    Write-CceLog "Export HTML : $Path" -Level OK
+    Write-CceLog ((T 'cli.export.html') -f $Path) -Level OK
     $Path
 }
