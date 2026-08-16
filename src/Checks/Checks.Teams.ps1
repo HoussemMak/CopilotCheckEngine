@@ -1,6 +1,51 @@
 ﻿#Requires -Version 7.0
 <# Controles 27 a 32 - MICROSOFT TEAMS POUR COPILOT #>
 
+function Get-CceTeamsValue {
+    <#
+    .SYNOPSIS
+        Lit une propriete d'un objet Teams ou Graph sans supposer sa presence.
+    .DESCRIPTION
+        Deux realites imposent cette prudence, toutes deux constatees en production :
+        les entrees de strategie Teams n'exposent pas toujours Id, et le jeu de
+        proprietes d'une strategie de reunion varie selon la version du module
+        MicrosoftTeams deployee. Sous Set-StrictMode Latest, l'acces direct a une
+        propriete absente arrete le controle au lieu de rendre un verdict.
+        La recherche est insensible a la casse : Graph expose 'id', les cmdlets Teams 'Id'.
+    #>
+    [CmdletBinding()]
+    param($InputObject, [Parameter(Mandatory)] [string] $Name)
+
+    if ($null -eq $InputObject) { return $null }
+
+    if ($InputObject -is [System.Collections.IDictionary]) {
+        foreach ($key in $InputObject.Keys) {
+            if ("$key" -ieq $Name) { return $InputObject[$key] }
+        }
+        return $null
+    }
+
+    $property = $InputObject.PSObject.Properties[$Name]
+    if ($null -ne $property) { return $property.Value }
+
+    foreach ($candidate in $InputObject.PSObject.Properties) {
+        if ($candidate.Name -ieq $Name) { return $candidate.Value }
+    }
+
+    $null
+}
+
+function Get-CceTeamsIdList {
+    <# Identifiants d'une collection d'applications, en ignorant les entrees sans Id. #>
+    [CmdletBinding()]
+    param($Items)
+
+    @(foreach ($item in @($Items)) {
+        $id = "$(Get-CceTeamsValue -InputObject $item -Name 'id')".Trim()
+        if ($id -ne '') { $id }
+    })
+}
+
 function Get-CceCopilotTeamsApp {
     <#
     .SYNOPSIS
@@ -15,7 +60,7 @@ function Get-CceCopilotTeamsApp {
     $response = Invoke-CceGraphRequest -Quiet `
         -Uri "https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?`$filter=distributionMethod eq 'store'&`$top=999"
 
-    $apps = (Get-CceResponseValue $response) | Where-Object { "$($_.displayName)" -match 'copilot' }
+    $apps = (Get-CceResponseValue $response) | Where-Object { "$(Get-CceTeamsValue -InputObject $_ -Name 'displayName')" -match 'copilot' }
     $Context.Cache['CopilotTeamsApps'] = @($apps)
     $Context.Cache['CopilotTeamsApps']
 }
@@ -29,33 +74,33 @@ function Invoke-CceCheck27 {
     $policy = Get-CceSafe { Get-CsTeamsAppPermissionPolicy -Identity Global -ErrorAction Stop } -What 'Get-CsTeamsAppPermissionPolicy'
     if (-not $policy) { return New-CceNotEvaluated -Service Teams -Context $Context }
 
-    $mode = "$($policy.DefaultCatalogAppsType)"
-    $globalMode = "$($policy.GlobalCatalogAppsType)"
-    $blocked = @($policy.DefaultCatalogApps) + @($policy.GlobalCatalogApps)
+    $mode = "$(Get-CceTeamsValue -InputObject $policy -Name 'DefaultCatalogAppsType')"
+    $globalMode = "$(Get-CceTeamsValue -InputObject $policy -Name 'GlobalCatalogAppsType')"
+    $blocked = @(Get-CceTeamsValue -InputObject $policy -Name 'DefaultCatalogApps') + @(Get-CceTeamsValue -InputObject $policy -Name 'GlobalCatalogApps')
     $copilotApps = @(Get-CceCopilotTeamsApp -Context $Context)
-    $copilotIds = @($copilotApps.id)
+    $copilotIds = @(Get-CceTeamsIdList -Items $copilotApps)
 
-    $blockedCopilot = @($blocked | Where-Object { $copilotIds -contains "$($_.Id)" })
+    $blockedCopilot = @($blocked | Where-Object { $copilotIds -contains "$(Get-CceTeamsValue -InputObject $_ -Name 'id')" })
 
     $observed = "DefaultCatalogAppsType=$mode | GlobalCatalogAppsType=$globalMode"
 
     if ($mode -eq 'BlockedAppList' -and $blockedCopilot.Count -eq 0) {
         return New-CceResult -Status 'Conforme' `
             -Observed ((T 'c27.obs.ok') -f $observed) `
-            -Evidence ((T 'c27.ev.ok') -f (($copilotApps.displayName) -join ', '))
+            -Evidence ((T 'c27.ev.ok') -f ((@(foreach ($a in $copilotApps) { "$(Get-CceTeamsValue -InputObject $a -Name 'displayName')" })) -join ', '))
     }
 
     if ($blockedCopilot.Count -gt 0) {
         return New-CceResult -Status 'Non conforme' `
             -Observed ((T 'c27.obs.ko') -f $observed) `
-            -Evidence ($blockedCopilot | ForEach-Object { (T 'c27.ev.line.blocked') -f $_.Id } | ConvertTo-CceText) `
+            -Evidence ($blockedCopilot | ForEach-Object { (T 'c27.ev.line.blocked') -f (Get-CceTeamsValue -InputObject $_ -Name 'id') } | ConvertTo-CceText) `
             -Remediation (T 'c27.rem.ko')
     }
 
     New-CceResult -Status 'Attention' `
         -Observed ((T 'c27.obs.warn') -f $observed) `
-        -Evidence (@((T 'c27.ev.warn.header') -f (($copilotApps.displayName) -join ', ')) +
-                   @($blocked | ForEach-Object { (T 'c27.ev.warn.line') -f $_.Id }) | ConvertTo-CceText) `
+        -Evidence (@((T 'c27.ev.warn.header') -f ((@(foreach ($a in $copilotApps) { "$(Get-CceTeamsValue -InputObject $a -Name 'displayName')" })) -join ', ')) +
+                   @($blocked | ForEach-Object { (T 'c27.ev.warn.line') -f (Get-CceTeamsValue -InputObject $_ -Name 'id') }) | ConvertTo-CceText) `
         -Remediation (T 'c27.rem.warn')
 }
 
@@ -68,29 +113,29 @@ function Invoke-CceCheck28 {
     $policy = Get-CceSafe { Get-CsTeamsAppSetupPolicy -Identity Global -ErrorAction Stop } -What 'Get-CsTeamsAppSetupPolicy'
     if (-not $policy) { return New-CceNotEvaluated -Service Teams -Context $Context }
 
-    $pinned = @($policy.PinnedAppBarApps)
+    $pinned = @(Get-CceTeamsValue -InputObject $policy -Name 'PinnedAppBarApps')
     $copilotApps = @(Get-CceCopilotTeamsApp -Context $Context)
-    $copilotIds = @($copilotApps.id)
+    $copilotIds = @(Get-CceTeamsIdList -Items $copilotApps)
 
-    $pinnedCopilot = @($pinned | Where-Object { $copilotIds -contains "$($_.Id)" })
+    $pinnedCopilot = @($pinned | Where-Object { $copilotIds -contains "$(Get-CceTeamsValue -InputObject $_ -Name 'id')" })
 
     if ($copilotIds.Count -eq 0) {
         return New-CceResult -Status 'Manuel' `
             -Observed ((T 'c28.obs.manual') -f $pinned.Count) `
-            -Evidence ($pinned | ForEach-Object { (T 'c28.ev.line.order') -f $_.Id, $_.Order } | ConvertTo-CceText) `
+            -Evidence ($pinned | ForEach-Object { (T 'c28.ev.line.order') -f (Get-CceTeamsValue -InputObject $_ -Name 'id'), (Get-CceTeamsValue -InputObject $_ -Name 'order') } | ConvertTo-CceText) `
             -Remediation (T 'c28.rem.manual')
     }
 
     if ($pinnedCopilot.Count -gt 0) {
         return New-CceResult -Status 'Conforme' `
             -Observed ((T 'c28.obs.ok') -f $pinned.Count) `
-            -Evidence ($pinnedCopilot | ForEach-Object { (T 'c28.ev.line.pinned') -f $_.Id } | ConvertTo-CceText)
+            -Evidence ($pinnedCopilot | ForEach-Object { (T 'c28.ev.line.pinned') -f (Get-CceTeamsValue -InputObject $_ -Name 'id') } | ConvertTo-CceText)
     }
 
     New-CceResult -Status 'Non conforme' `
         -Observed ((T 'c28.obs.ko') -f $pinned.Count) `
-        -Evidence (@((T 'c28.ev.ko.header') -f (($copilotApps.displayName) -join ', ')) +
-                   @($pinned | ForEach-Object { (T 'c28.ev.line.pinned') -f $_.Id }) | ConvertTo-CceText) `
+        -Evidence (@((T 'c28.ev.ko.header') -f ((@(foreach ($a in $copilotApps) { "$(Get-CceTeamsValue -InputObject $a -Name 'displayName')" })) -join ', ')) +
+                   @($pinned | ForEach-Object { (T 'c28.ev.line.pinned') -f (Get-CceTeamsValue -InputObject $_ -Name 'id') }) | ConvertTo-CceText) `
         -Remediation (T 'c28.rem.ko')
 }
 
@@ -101,7 +146,7 @@ function Invoke-CceCheck29 {
     $policy = Get-CceTeamsMeetingPolicy -Context $Context
     if (-not $policy) { return New-CceNotEvaluated -Service Teams -Context $Context }
 
-    $value = [bool] $policy.AllowTranscription
+    $value = [bool] (Get-CceTeamsValue -InputObject $policy -Name 'AllowTranscription')
 
     New-CceResult -Status $(if ($value) { 'Conforme' } else { 'Non conforme' }) `
         -Observed ((T 'c29.obs.default') -f $value) `
@@ -116,7 +161,7 @@ function Invoke-CceCheck30 {
     $policy = Get-CceTeamsMeetingPolicy -Context $Context
     if (-not $policy) { return New-CceNotEvaluated -Service Teams -Context $Context }
 
-    $value = [bool] $policy.AllowCloudRecording
+    $value = [bool] (Get-CceTeamsValue -InputObject $policy -Name 'AllowCloudRecording')
 
     New-CceResult -Status $(if ($value) { 'Conforme' } else { 'Attention' }) `
         -Observed ((T 'c30.obs.default') -f $value) `
@@ -350,8 +395,8 @@ function Invoke-CceCheck32 {
     $policy = Get-CceTeamsMeetingPolicy -Context $Context
     if (-not $policy) { return New-CceNotEvaluated -Service Teams -Context $Context }
 
-    $cart = [bool] $policy.AllowCartCaptions
-    $live = "$($policy.LiveCaptionsEnabledType)"
+    $cart = [bool] (Get-CceTeamsValue -InputObject $policy -Name 'AllowCartCaptions')
+    $live = "$(Get-CceTeamsValue -InputObject $policy -Name 'LiveCaptionsEnabledType')"
     $ok = $cart -or ($live -match 'Enabled')
 
     New-CceResult -Status $(if ($ok) { 'Conforme' } else { 'Attention' }) `
