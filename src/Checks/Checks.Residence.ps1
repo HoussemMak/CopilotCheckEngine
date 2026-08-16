@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
     Controles 72 a 79 - RESIDENCE ET SOUVERAINETE DES DONNEES
 
@@ -283,7 +283,7 @@ function Get-CceResidenceRoleHolder {
     $result.Found = $true
     $result.RoleId = Get-CceResidenceText -Item $role -Name 'id'
 
-    $members = Get-CceResidenceGraphCollection -Uri "https://graph.microsoft.com/v1.0/directoryRoles/$($result.RoleId)/members?`$top=999"
+    $members = Get-CceResidenceGraphCollection -Uri "https://graph.microsoft.com/v1.0/directoryRoles/$($result.RoleId)/members"
     if (-not $members.Ok) {
         $result.Ok = $false
         return $result

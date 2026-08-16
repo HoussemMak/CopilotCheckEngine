@@ -40,8 +40,12 @@ $ErrorActionPreference = 'Stop'
 $certain = [System.Collections.Generic.List[object]]::new()
 $suspect = [System.Collections.Generic.List[object]]::new()
 
-# Commandes connues pour toujours rendre un tableau : leur resultat est sur.
-$safeCommands = @('Get-CceResponseValue', 'ConvertTo-CceText')
+# AUCUNE commande n'est declaree sure. Une fonction PowerShell ne peut pas garantir
+# qu'elle rend un tableau : le deroulement d'un element unique se produit au RETOUR,
+# hors de son controle. Meme un corps qui se termine par @(...) rend un scalaire quand
+# la collection ne contient qu'un element, et $null quand elle est vide.
+# Seul @() au site d'appel protege.
+$safeCommands = @()
 
 function Test-SafeWrapper {
     <# Vrai si l'expression est deja enveloppee dans @() ou est un litteral de tableau. #>

@@ -1055,7 +1055,7 @@ function Get-CceConfigurationPolicyAssignmentCount {
         -Uri ('https://graph.microsoft.com/beta/deviceManagement/configurationPolicies/{0}/assignments' -f $PolicyId)
 
     if ($null -eq $response) { return $null }
-    (Get-CceResponseValue $response).Count
+    @(Get-CceResponseValue $response).Count
 }
 
 function Invoke-CceCheck41 {

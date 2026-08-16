@@ -398,15 +398,22 @@ function Invoke-CceCheck45 {
             -Remediation (T 'c45.rem.error')
     }
 
-    $apps = (Get-CceResponseValue $response)
+    # $select ne cree pas les proprietes absentes : un principal de service sans editeur
+    # declare ne porte tout simplement pas publisherName, et sa lecture directe leve sous
+    # Set-StrictMode Latest. La resolution passe donc par l'accesseur defensif.
+    $apps = @(Get-CceResponseValue $response)
     $thirdParty = @($apps | Where-Object {
-        "$($_.publisherName)" -notmatch 'Microsoft' -and @($_.tags) -contains 'WindowsAzureActiveDirectoryIntegratedApp'
+        "$(Get-CceAgentValue -Item $_ -Name 'publisherName')" -notmatch 'Microsoft' -and
+        @(Get-CceAgentValue -Item $_ -Name 'tags') -contains 'WindowsAzureActiveDirectoryIntegratedApp'
     })
 
     New-CceResult -Status $(if ($thirdParty.Count -eq 0) { 'Conforme' } else { 'Attention' }) `
         -Observed ((T 'c45.obs.count') -f $thirdParty.Count, $apps.Count) `
         -Evidence ($thirdParty | Select-Object -First 25 |
-            ForEach-Object { (T 'c45.ev.line') -f $_.displayName, $_.publisherName } | ConvertTo-CceText -MaxItems 25) `
+            ForEach-Object {
+                (T 'c45.ev.line') -f (Get-CceAgentValue -Item $_ -Name 'displayName'),
+                                     (Get-CceAgentValue -Item $_ -Name 'publisherName')
+            } | ConvertTo-CceText -MaxItems 25) `
         -Remediation $(if ($thirdParty.Count -eq 0) { '' } else {
             T 'c45.rem.ko'
         })

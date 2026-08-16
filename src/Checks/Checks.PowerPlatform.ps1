@@ -467,7 +467,7 @@ function Get-CcePpMakerScope {
 
             if (-not [string]::IsNullOrWhiteSpace($groupId)) {
                 $members = Invoke-CceGraphRequest -Quiet `
-                    -Uri "https://graph.microsoft.com/v1.0/groups/$groupId/members?`$select=id,userPrincipalName,mail&`$top=999"
+                    -Uri "https://graph.microsoft.com/v1.0/groups/$groupId/members?`$select=id,userPrincipalName,mail"
 
                 $set = [System.Collections.Generic.List[string]]::new()
                 foreach ($member in @(Get-CcePpRows -Response $members)) {
