@@ -1,10 +1,10 @@
-# Copilot Check Engine
+﻿# Copilot Check Engine
 
 **Français : [README.md](README.md)**
 
 Generates the **Microsoft 365 Copilot** configuration checklist already filled in with the real data of the tenant it runs against, and exports it to **XLSX**, **HTML** and **JSON**.
 
-One command does everything: connect, collect, evaluate all 59 requirements, produce the reports.
+One command does everything: connect, collect, evaluate all 87 requirements, produce the reports.
 
 ```powershell
 .\Invoke-CopilotCheckEngine.ps1 -TenantId contoso.onmicrosoft.com -AdminUpn admin@contoso.com -Language en -OpenReport
@@ -18,7 +18,7 @@ One command does everything: connect, collect, evaluate all 59 requirements, pro
 
 | Output | Contents |
 | --- | --- |
-| `CopilotCheck_<tenant>_<lang>_<timestamp>.xlsx` | Four sheets: **Summary** (indicators, rate by priority and by domain), **Checklist** (59 rows, conditional formatting, filters), **Evidence** (raw data collected), **Log** (execution trace). |
+| `CopilotCheck_<tenant>_<lang>_<timestamp>.xlsx` | Four sheets: **Summary** (indicators, rate by priority and by domain), **Checklist** (87 rows, conditional formatting, filters), **Evidence** (raw data collected), **Log** (execution trace). |
 | `CopilotCheck_<tenant>_<lang>_<timestamp>.html` | Self-contained report: compliance gauge, KPI cards, bars by priority and by domain, full-text search, status and priority filters, print layout. No external resource. |
 | `CopilotCheck_<tenant>_<lang>_<timestamp>.json` | Same content, ready for a CI pipeline or a dashboard. |
 
@@ -33,18 +33,19 @@ Every requirement is reported with its **observed value on the tenant**, the exp
 | `Attention` | Partial configuration, or a governance decision to make. |
 | `Manual` | No public API: the engine supplies the procedure, a human validates. |
 | `Not evaluated` | Service not connected, insufficient permissions, or an error during the check. |
+| `Not applicable` | The audited capability is not held by the tenant (add-on or licence absent). Out of score. |
 
-The compliance rate is computed over the automatically evaluable base (`Compliant + Non-compliant + Attention`), so that manual requirements never inflate or deflate the figure.
+The compliance rate only contains what the engine measured itself, on capabilities the tenant actually holds: it is computed over `Compliant + Non-compliant + Attention`. Manual, not applicable, informational and deprecated requirements appear in the report without affecting the figure.
 
 ---
 
 ## Coverage
 
-Of the 59 requirements in the baseline:
+Of the 87 requirements in the baseline:
 
-- **42** are evaluated automatically by querying the tenant;
-- **2** require inspecting a workstation (`-IncludeLocalChecks`);
-- **15** are portal settings with no public API, or organisational deliverables, and are reported as `Manual` with the exact procedure.
+- **73** are evaluated automatically by querying the tenant;
+- **6** require inspecting a workstation (`-IncludeLocalChecks`);
+- **8** are portal settings with no public API, or organisational deliverables, and are reported as `Manual` with the exact procedure.
 
 The full breakdown, requirement by requirement with the source queried, is in [`docs/COVERAGE.en.md`](docs/COVERAGE.en.md).
 
@@ -133,7 +134,10 @@ $audit.Results | Where-Object { $_.Priorite -eq 'Blocking' -and $_.Statut -eq 'N
 | `-ClientId`, `-CertificateThumbprint`, `-ClientSecret`, `-Organization` | Unattended run (app-only). |
 | `-Language` | Report language: `fr` (default) or `en`. |
 | `-SharePointAdminUrl` | Overrides the SharePoint admin URL (derived from the default domain otherwise). |
-| `-Services` | Subset of `Graph`, `Exchange`, `Purview`, `SharePoint`, `Teams`. |
+| `-Services` | Subset of `Graph`, `Exchange`, `Purview`, `SharePoint`, `Teams`, plus `PowerPlatform` and `Commerce` (optional, separate admin domains). |
+| `-RetrievalProbeTerm` | A known, indexed business term for the semantic index probe. Without it the probe stays manual. |
+| `-AllowReportGeneration` | Allows triggering SharePoint reports that do not exist yet. Off by default: the engine stays side-effect free. |
+| `-AgentNamingPattern` | Regular expression for the agent naming convention. Without it the check inventories without judging. |
 | `-OutputPath` | Output directory. Default: `.\output`. |
 | `-IncludeLocalChecks` | Adds inspection of the current workstation. |
 | `-MailboxSampleSize` | Number of mailboxes analysed for the Exchange checks. Default: 100. |
@@ -148,7 +152,7 @@ $audit.Results | Where-Object { $_.Priorite -eq 'Blocking' -and $_.Statut -eq 'N
 
 ```
 Invoke-CopilotCheckEngine.ps1     Entry point: connections, orchestration, exports
-data/checklist-catalog.json       Baseline, 59 requirements (French, source of truth)
+data/checklist-catalog.json       Baseline, 87 requirements (French, source of truth)
 data/checklist-catalog.en.json    Same baseline, English
 data/strings.fr.json              Runtime message templates, French
 data/strings.en.json              Runtime message templates, English
@@ -159,6 +163,7 @@ tools/Convert-XlsxToCatalog.ps1   Rebuilds the catalogue from the reference work
 tools/New-CceCoverageDoc.ps1      Rebuilds docs/COVERAGE.md and docs/COVERAGE.en.md
 tools/New-CceDemoReport.ps1       Demonstration report (smoke test, no tenant needed)
 tools/Test-CceI18n.ps1            Validates resource keys, placeholders and catalogues
+tools/Test-CceChecks.ps1          Runs all 87 checks dry in both languages
 samples/                          Sample output
 docs/COVERAGE.en.md               Source queried for every requirement
 ```

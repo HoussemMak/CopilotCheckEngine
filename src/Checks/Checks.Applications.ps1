@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <# Controles 6 a 9 - APPLICATIONS ET AUTHENTIFICATION #>
 
 function Get-CceOfficeLocalConfiguration {
@@ -64,7 +64,7 @@ function Invoke-CceCheck06 {
     }
 
     if ($report -and $report.value) {
-        $rows = @($report.value)
+        $rows = (Get-CceResponseValue $report)
         $withDesktop = @($rows | Where-Object { "$($_.appVersion)" -match '16\.0' -or $_.word -eq $true })
         return New-CceResult -Status 'Manuel' `
             -Observed ((T 'c06.obs.report') -f $rows.Count) `
@@ -129,39 +129,273 @@ function Invoke-CceCheck08 {
         -Remediation $(if ($enabled) { '' } else { (T 'c08.rem.ko') })
 }
 
+function Get-CceConnectedExperienceSetting {
+    <#
+    .SYNOPSIS
+        Les quatre strategies de confidentialite Office qui conditionnent Copilot.
+    .DESCRIPTION
+        Pour chacune : le nom officiel de la strategie, la valeur de registre associee et
+        le motif qui permet de la reconnaitre dans un profil Intune (identifiant ADMX ou
+        OMA-URI). L'ordre est significatif : le motif le plus specifique est teste d'abord,
+        le motif generique 'connectedexperiences' vient en dernier.
+        Valeurs officielles de registre : 1 = Enabled, 2 = Disabled.
+        Source : learn.microsoft.com/microsoft-365-apps/privacy/manage-privacy-controls
+    #>
+    [CmdletBinding()] param()
+
+    @(
+        [pscustomobject]@{
+            Registry = 'usercontentdisabled'
+            Name     = (T 'c09.ev.usercontent')
+            Pattern  = 'usercontentdisabled|thatanalyzecontent|analyzecontent'
+        }
+        [pscustomobject]@{
+            Registry = 'downloadcontentdisabled'
+            Name     = (T 'c09.ev.downloadcontent')
+            Pattern  = 'downloadcontentdisabled|downloadonlinecontent'
+        }
+        [pscustomobject]@{
+            Registry = 'controllerconnectedservicesenabled'
+            Name     = (T 'c09.ev.optional')
+            Pattern  = 'controllerconnectedservices|optionalconnectedexperiences'
+        }
+        [pscustomobject]@{
+            Registry = 'disconnectedstate'
+            Name     = (T 'c09.ev.disconnected')
+            Pattern  = 'disconnectedstate|connectedexperiences'
+        }
+    )
+}
+
+function Get-CceOfficePrivacyPolicy {
+    <#
+    .SYNOPSIS
+        Etat effectif des strategies de confidentialite Office sur le poste courant.
+    .DESCRIPTION
+        Deux emplacements sont lus, en lecture seule : la strategie de groupe (ADMX) et le
+        miroir local du Cloud Policy service, documente sous
+        HKCU\Software\Policies\Microsoft\Cloud\Office\16.0. Cloud Policy l'emporte sur la
+        strategie de groupe : sa valeur ecrase donc celle de l'ADMX.
+        Les valeurs sont 1 = Enabled et 2 = Disabled : toute autre valeur n'est pas probante
+        et n'est donc pas comptee (l'ancienne implementation lisait 1 et 0 comme des
+        blocages, ce qui declarait non conforme un poste correctement configure).
+    #>
+    [CmdletBinding()] param()
+
+    if (-not $IsWindows) { return $null }
+
+    $scopes = @(
+        [pscustomobject]@{ Path = 'HKCU:\Software\Policies\Microsoft\office\16.0\common\privacy';       Source = (T 'c09.src.gpo') }
+        [pscustomobject]@{ Path = 'HKCU:\Software\Policies\Microsoft\Cloud\Office\16.0\common\privacy'; Source = (T 'c09.src.cloud') }
+    )
+
+    $settings = Get-CceConnectedExperienceSetting
+    $state = [ordered]@{}
+    $keyPresent = $false
+    $paths = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($scope in $scopes) {
+        $paths.Add($scope.Path)
+        if (-not (Test-Path -Path $scope.Path)) { continue }
+
+        $properties = Get-CceSafe { Get-ItemProperty -Path $scope.Path -ErrorAction Stop } -What $scope.Path
+        if (-not $properties) { continue }
+        $keyPresent = $true
+
+        foreach ($setting in $settings) {
+            $property = $properties.PSObject.Properties[$setting.Registry]
+            if (-not $property) { continue }
+
+            $number = 0
+            if (-not [int]::TryParse("$($property.Value)", [ref] $number)) { continue }
+            if ($number -ne 1 -and $number -ne 2) { continue }
+
+            $state[$setting.Registry] = [pscustomobject]@{
+                Value  = $number
+                Source = $scope.Source
+                Name   = $setting.Name
+            }
+        }
+    }
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $blocked = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($registry in $state.Keys) {
+        $entry = $state[$registry]
+        $label = if ($entry.Value -eq 2) { T 'c09.state.disabled' } else { T 'c09.state.enabled' }
+        $line = (T 'c09.ev.local.item') -f $entry.Name, $label, $entry.Source
+        $lines.Add($line)
+        if ($entry.Value -eq 2) { $blocked.Add($line) }
+    }
+
+    [pscustomobject]@{
+        KeyPresent = $keyPresent
+        Decided    = $lines.Count
+        Lines      = $lines
+        Blocked    = $blocked
+        Paths      = ($paths -join ' ; ')
+    }
+}
+
+function Get-CceIntuneConnectedExperiencePolicy {
+    <#
+    .SYNOPSIS
+        Strategies d'experiences connectees portees par le catalogue de parametres Intune.
+    .DESCRIPTION
+        Le Cloud Policy service (config.office.com) n'expose aucune API publique : Intune
+        est le seul chemin de lecture cote tenant, et il ne repond que si l'organisation y
+        porte la strategie. L'endpoint du catalogue de parametres n'existe qu'en beta et
+        exige DeviceManagementConfiguration.Read.All.
+        Renvoie $null si l'endpoint n'est pas lisible (Intune absent, droits manquants) :
+        le controle retombe alors sur le poste de reference.
+    #>
+    [CmdletBinding()] param($Context)
+
+    if (-not (Test-CceService -Service Graph -Context $Context)) { return $null }
+
+    $settings = Get-CceConnectedExperienceSetting
+    $uri = 'https://graph.microsoft.com/beta/deviceManagement/configurationPolicies?$expand=settings&$top=100'
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $blocked = [System.Collections.Generic.List[string]]::new()
+    $enabled = [System.Collections.Generic.List[string]]::new()
+    $unknown = [System.Collections.Generic.List[string]]::new()
+    $policyCount = 0
+    $page = 0
+    $read = $false
+
+    while ($uri -and $page -lt 10) {
+        $page++
+        $response = Invoke-CceGraphRequest -Quiet -Uri $uri
+        if (-not $response) { break }
+        $read = $true
+
+        $uri = $null
+        $next = $response.PSObject.Properties['@odata.nextLink']
+        if ($next -and $next.Value) { $uri = [string] $next.Value }
+
+        $collection = $response.PSObject.Properties['value']
+        if (-not $collection) { continue }
+
+        foreach ($policy in @($collection.Value)) {
+            if (-not $policy) { continue }
+            $policyCount++
+
+            $policyName = ''
+            foreach ($candidate in 'name', 'id') {
+                $property = $policy.PSObject.Properties[$candidate]
+                if ($property -and $property.Value) { $policyName = [string] $property.Value; break }
+            }
+
+            $inner = $policy.PSObject.Properties['settings']
+            if (-not $inner) { continue }
+
+            foreach ($setting in @($inner.Value)) {
+                if (-not $setting) { continue }
+
+                $json = Get-CceSafe { $setting | ConvertTo-Json -Depth 12 -Compress } -What 'configurationPolicies/settings'
+                if (-not $json) { continue }
+                $flat = ([string] $json).ToLowerInvariant()
+
+                $match = $settings | Where-Object { $flat -match $_.Pattern } | Select-Object -First 1
+                if (-not $match) { continue }
+
+                # Catalogue de parametres : la valeur retenue se termine par _1 (Enabled) ou
+                # _0 (Disabled). ADMX ingere : la valeur porte <enabled/> ou <disabled/>.
+                $decision = 'unknown'
+                $choice = [regex]::Match($flat, '"value"\s*:\s*"[^"]*(?:connectedexperiences|disconnectedstate|usercontentdisabled|downloadcontentdisabled|controllerconnectedservices)[^"]*_(\d)"')
+                if ($choice.Success) {
+                    $decision = if ($choice.Groups[1].Value -eq '1') { 'enabled' } else { 'disabled' }
+                }
+                elseif ($flat -match '<enabled\s*/>') { $decision = 'enabled' }
+                elseif ($flat -match '<disabled\s*/>') { $decision = 'disabled' }
+
+                $label = switch ($decision) {
+                    'enabled'  { T 'c09.state.enabled' }
+                    'disabled' { T 'c09.state.disabled' }
+                    default    { T 'c09.state.unknown' }
+                }
+
+                $line = (T 'c09.ev.intune.item') -f $match.Name, $label, $policyName
+                $lines.Add($line)
+
+                if ($decision -eq 'disabled') { $blocked.Add($line) }
+                elseif ($decision -eq 'enabled') { $enabled.Add($line) }
+                else { $unknown.Add($line) }
+            }
+        }
+    }
+
+    if (-not $read) { return $null }
+
+    [pscustomobject]@{
+        PolicyCount = $policyCount
+        Lines       = $lines
+        Blocked     = $blocked
+        Enabled     = $enabled
+        Unknown     = $unknown
+    }
+}
+
 function Invoke-CceCheck09 {
     <# Experiences connectees (Connected Experiences) activees #>
     [CmdletBinding()] param($Context)
 
-    if ($Context.Config.IncludeLocalChecks -and $IsWindows) {
-        $key = 'HKCU:\Software\Policies\Microsoft\office\16.0\common\privacy'
-        if (Test-Path $key) {
-            $p = Get-CceSafe { Get-ItemProperty -Path $key -ErrorAction Stop } -What 'registre privacy Office'
-            $blocked = @()
-            if ($p.disconnectedstate -eq 2)         { $blocked += (T 'c09.ev.disconnected') }
-            if ($p.usercontentdisabled -eq 1)       { $blocked += (T 'c09.ev.usercontent') }
-            if ($p.downloadcontentdisabled -eq 1)   { $blocked += (T 'c09.ev.downloadcontent') }
-            if ($p.controllerconnectedservicesenabled -eq 0) { $blocked += (T 'c09.ev.optional') }
+    # Deux sources, deux niveaux de preuve. Une valeur bloquante sur le poste de reference
+    # est l'etat reellement applique : elle tranche en 'Non conforme'. Un profil Intune
+    # bloquant est une preuve moins forte, car sa portee d'affectation n'est pas verifiee
+    # ici : il donne 'Attention'. Sans blocage, toute valeur explicite vaut 'Conforme',
+    # l'absence de strategie aussi puisque la valeur par defaut est "experiences activees".
+    $intune = Get-CceIntuneConnectedExperiencePolicy -Context $Context
 
-            if ($blocked.Count -gt 0) {
-                return New-CceResult -Status 'Non conforme' `
-                    -Observed ((T 'c09.obs.blocked') -f $blocked.Count) `
-                    -Evidence ($blocked | ConvertTo-CceText) `
-                    -Remediation (T 'c09.rem.blocked')
-            }
+    $local = $null
+    if ($Context.Config.IncludeLocalChecks) { $local = Get-CceOfficePrivacyPolicy }
 
-            return New-CceResult -Status 'Conforme' `
-                -Observed (T 'c09.obs.ok') `
-                -Evidence ((T 'c09.ev.ok') -f $key)
-        }
+    $lines = [System.Collections.Generic.List[string]]::new()
+    if ($local) { foreach ($line in $local.Lines) { $lines.Add($line) } }
+    if ($intune) { foreach ($line in $intune.Lines) { $lines.Add($line) } }
 
+    if ($local -and $local.Blocked.Count -gt 0) {
+        return New-CceResult -Status 'Non conforme' `
+            -Observed ((T 'c09.obs.blocked') -f $local.Blocked.Count) `
+            -Evidence ($lines | ConvertTo-CceText) `
+            -Remediation (T 'c09.rem.blocked')
+    }
+
+    if ($intune -and $intune.Blocked.Count -gt 0) {
+        $lines.Add((T 'c09.ev.intune.scope'))
+        return New-CceResult -Status 'Attention' `
+            -Observed ((T 'c09.obs.intune.blocked') -f $intune.Blocked.Count) `
+            -Evidence ($lines | ConvertTo-CceText) `
+            -Remediation (T 'c09.rem.blocked')
+    }
+
+    $decided = 0
+    if ($local) { $decided += $local.Decided }
+    if ($intune) { $decided += $intune.Enabled.Count }
+
+    if ($decided -gt 0) {
+        return New-CceResult -Status 'Conforme' `
+            -Observed ((T 'c09.obs.ok') -f $decided) `
+            -Evidence ($lines | ConvertTo-CceText)
+    }
+
+    if ($local) {
+        # Poste lu, aucune valeur probante : les experiences connectees restent a leur
+        # valeur par defaut, c'est-a-dire activees.
+        $evidence = if ($local.KeyPresent) { (T 'c09.ev.ok') -f $local.Paths } else { (T 'c09.ev.nopolicy') -f $local.Paths }
         return New-CceResult -Status 'Conforme' `
             -Observed (T 'c09.obs.nopolicy') `
-            -Evidence ((T 'c09.ev.nopolicy') -f $key)
+            -Evidence $evidence
     }
+
+    $trace = if ($intune -and $intune.Unknown.Count -gt 0) { $lines | ConvertTo-CceText }
+    elseif ($intune) { (T 'c09.ev.intune.none') -f $intune.PolicyCount }
+    else { T 'c09.ev.manual' }
 
     New-CceResult -Status 'Manuel' `
         -Observed (T 'c09.obs.manual') `
-        -Evidence (T 'c09.ev.manual') `
+        -Evidence $trace `
         -Remediation (T 'c09.rem.manual')
 }

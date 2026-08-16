@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <# Controles 10 a 15 - IDENTITE ET ACCES CONDITIONNEL #>
 
 $script:CceGraphAppId    = '00000003-0000-0000-c000-000000000000'  # Microsoft Graph
@@ -127,7 +127,7 @@ function Invoke-CceCheck13 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $users = Get-CceCopilotUser -Context $Context
+    $users = @(Get-CceCopilotUser -Context $Context)
     $scope = (T 'c13.obs.scopecopilot')
 
     if (-not $users -or $users.Count -eq 0) {
@@ -166,7 +166,7 @@ function Invoke-CceCheck14 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $users = Get-CceCopilotUser -Context $Context
+    $users = @(Get-CceCopilotUser -Context $Context)
     $disabled = @($users | Where-Object { -not $_.AccountEnabled })
 
     if ($disabled.Count -eq 0) {
@@ -187,7 +187,7 @@ function Invoke-CceCheck15 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $users = Get-CceCopilotUser -Context $Context
+    $users = @(Get-CceCopilotUser -Context $Context)
     $guests = @($users | Where-Object { "$($_.UserType)" -eq 'Guest' })
 
     if ($guests.Count -eq 0) {

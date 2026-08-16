@@ -88,11 +88,19 @@ foreach ($item in $catalog.items) {
 
     $priorityToken = ConvertTo-CceCanonicalPriority -Priority $item.Priority
 
+    $phase = if ($item.PSObject.Properties.Name -contains 'Phase' -and $item.Phase) { $item.Phase } else { 'pre-deployment' }
+
     $results.Add([pscustomobject]@{
         Id                   = $item.Id
         Section              = $item.Section
         Categorie            = $item.Category
         Requirement          = $item.Requirement
+        Phase                = $phase
+        PhaseLibelle         = T "phase.$phase"
+        Mode                 = if ($item.PSObject.Properties.Name -contains 'Mode') { $item.Mode } else { '' }
+        AuthMode             = if ($item.PSObject.Properties.Name -contains 'AuthMode') { $item.AuthMode } else { 'both' }
+        LicenceRequise       = if ($item.PSObject.Properties.Name -contains 'RequiresLicense') { $item.RequiresLicense } else { '' }
+        Notee                = if ($item.PSObject.Properties.Name -contains 'Scored') { [bool] $item.Scored } else { $true }
         Priorite             = $priorityToken
         PrioriteLibelle      = Get-CcePriorityLabel -Priority $priorityToken
         Statut               = $outcome.Status

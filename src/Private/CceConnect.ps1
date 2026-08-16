@@ -5,14 +5,21 @@
     controles portes par les autres (les controles concernes passent en "Non evalue").
 #>
 
+# Chaque scope correspond a un endpoint reellement appele par un controle.
+# Un scope manquant ne fait pas echouer le moteur : l'appel retombe en "Non evalue",
+# ce qui se lit a tort comme une absence d'API. D'ou la correspondance explicite.
 $script:CceGraphScopes = @(
-    'Organization.Read.All'
-    'Directory.Read.All'
-    'User.Read.All'
-    'Group.Read.All'
-    'Policy.Read.All'
-    'Reports.Read.All'
-    'Application.Read.All'
+    'Organization.Read.All'          # Get-MgOrganization, SKU
+    'Directory.Read.All'             # abonnements, annuaire
+    'User.Read.All'                  # utilisateurs licencies
+    'Group.Read.All'                 # licences par groupe
+    'Policy.Read.All'                # acces conditionnel
+    'Reports.Read.All'               # rapports d'usage Copilot et M365 Apps
+    'Application.Read.All'           # principaux de service, applications integrees
+    'AppCatalog.Read.All'            # /appCatalogs/teamsApps (controles 27 et 28)
+    'ExternalConnection.Read.All'    # /external/connections (controle 46)
+    'Files.Read.All'                 # sonde de l'index semantique (/copilot/retrieval)
+    'RoleManagement.Read.Directory'  # attributions de roles d'administration
 )
 
 function Connect-CceGraph {
@@ -178,6 +185,67 @@ function Connect-CceTeams {
     }
 }
 
+function Connect-CcePowerPlatform {
+    <#
+    .SYNOPSIS
+        Connexion optionnelle a Power Platform (inventaire des agents Copilot Studio).
+    .DESCRIPTION
+        Module absent ou role manquant : le service reste non connecte et les controles
+        concernes ressortent en "Non applicable" plutot que de faire echouer l'audit.
+        Ce domaine d'administration est distinct de Microsoft 365 : il exige son propre
+        role, d'ou son caractere optionnel.
+    #>
+    [CmdletBinding()]
+    param($Context, [hashtable] $Auth)
+
+    Write-CceLog ((T 'conn.start') -f 'Power Platform') -Level STEP
+
+    try {
+        Import-Module Microsoft.PowerApps.Administration.PowerShell -ErrorAction Stop
+
+        if ($Auth.ClientId -and $Auth.ClientSecret -and $Auth.TenantId) {
+            Add-PowerAppsAccount -TenantID $Auth.TenantId -ApplicationId $Auth.ClientId `
+                -ClientSecret $Auth.ClientSecret -ErrorAction Stop | Out-Null
+        }
+        else {
+            Add-PowerAppsAccount -ErrorAction Stop | Out-Null
+        }
+
+        $Context.Services.PowerPlatform = $true
+        Write-CceLog ((T 'conn.ok') -f 'Power Platform') -Level OK
+    }
+    catch {
+        $Context.ServiceError['PowerPlatform'] = $_.Exception.Message
+        Write-CceLog ((T 'conn.failed') -f 'Power Platform', $_.Exception.Message) -Level WARN
+    }
+}
+
+function Connect-CceCommerce {
+    <#
+    .SYNOPSIS
+        Connexion optionnelle a MSCommerce (achats en libre-service).
+    .DESCRIPTION
+        Aucun endpoint Graph n'expose la strategie d'achat en libre-service : ce module
+        est la seule source. Son absence n'interrompt pas l'audit.
+    #>
+    [CmdletBinding()]
+    param($Context, [hashtable] $Auth)
+
+    Write-CceLog ((T 'conn.start') -f 'MSCommerce') -Level STEP
+
+    try {
+        Import-Module MSCommerce -ErrorAction Stop
+        Connect-MSCommerce -ErrorAction Stop | Out-Null
+
+        $Context.Services.Commerce = $true
+        Write-CceLog ((T 'conn.ok') -f 'MSCommerce') -Level OK
+    }
+    catch {
+        $Context.ServiceError['Commerce'] = $_.Exception.Message
+        Write-CceLog ((T 'conn.failed') -f 'MSCommerce', $_.Exception.Message) -Level WARN
+    }
+}
+
 function Connect-CceServices {
     <#
     .SYNOPSIS
@@ -191,11 +259,13 @@ function Connect-CceServices {
         [string[]] $Services = @('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams')
     )
 
-    if ($Services -contains 'Graph')      { Connect-CceGraph      -Context $Context -Auth $Auth }
-    if ($Services -contains 'Exchange')   { Connect-CceExchange   -Context $Context -Auth $Auth }
-    if ($Services -contains 'Purview')    { Connect-CcePurview    -Context $Context -Auth $Auth }
-    if ($Services -contains 'SharePoint') { Connect-CceSharePoint -Context $Context -Auth $Auth }
-    if ($Services -contains 'Teams')      { Connect-CceTeams      -Context $Context -Auth $Auth }
+    if ($Services -contains 'Graph')          { Connect-CceGraph         -Context $Context -Auth $Auth }
+    if ($Services -contains 'Exchange')       { Connect-CceExchange      -Context $Context -Auth $Auth }
+    if ($Services -contains 'Purview')        { Connect-CcePurview       -Context $Context -Auth $Auth }
+    if ($Services -contains 'SharePoint')     { Connect-CceSharePoint    -Context $Context -Auth $Auth }
+    if ($Services -contains 'Teams')          { Connect-CceTeams         -Context $Context -Auth $Auth }
+    if ($Services -contains 'PowerPlatform')  { Connect-CcePowerPlatform -Context $Context -Auth $Auth }
+    if ($Services -contains 'Commerce')       { Connect-CceCommerce      -Context $Context -Auth $Auth }
 
     $connected = ($Context.Services.GetEnumerator() | Where-Object { $_.Value }).Count
     Write-CceLog ((T 'conn.summary') -f $connected, $Context.Services.Count) -Level INFO

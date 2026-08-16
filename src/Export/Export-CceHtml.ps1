@@ -14,11 +14,12 @@ function Get-CceStatusSlug {
     [CmdletBinding()] param([string] $Status)
 
     switch ($Status) {
-        'Compliant'    { 'ok' }
-        'NonCompliant' { 'ko' }
-        'Warning'      { 'warn' }
-        'Manual'       { 'manual' }
-        default        { 'na' }
+        'Compliant'     { 'ok' }
+        'NonCompliant'  { 'ko' }
+        'Warning'       { 'warn' }
+        'Manual'        { 'manual' }
+        'NotApplicable' { 'nap' }
+        default         { 'na' }
     }
 }
 
@@ -45,8 +46,9 @@ function Export-CceHtml {
         @{ Label = T 'html.kpi.compliant';    Value = $stats.Conforme;    Slug = 'ok' }
         @{ Label = T 'html.kpi.noncompliant'; Value = $stats.NonConforme; Slug = 'ko' }
         @{ Label = T 'html.kpi.warning';      Value = $stats.Attention;   Slug = 'warn' }
-        @{ Label = T 'html.kpi.manual';       Value = $stats.Manuel;      Slug = 'manual' }
-        @{ Label = T 'html.kpi.notevaluated'; Value = $stats.NonEvalue;   Slug = 'na' }
+        @{ Label = T 'html.kpi.manual';        Value = $stats.Manuel;        Slug = 'manual' }
+        @{ Label = T 'html.kpi.notapplicable'; Value = $stats.NonApplicable; Slug = 'nap' }
+        @{ Label = T 'html.kpi.notevaluated';  Value = $stats.NonEvalue;     Slug = 'na' }
     )
 
     $kpiHtml = ($kpis | ForEach-Object {
@@ -103,14 +105,19 @@ function Export-CceHtml {
             } else { '' }
 
             $searchText = & $enc ("$($r.Id) $($r.Requirement) $($r.Categorie) $($r.ValeurConstatee)").ToLower()
+            $unscored = if ($r.Notee -eq $false) { "<span class=`"tag tag-info`">$(& $enc (T 'html.badge.informational'))</span>" } else { '' }
+            $licence = if ($r.LicenceRequise) { "<span class=`"tag tag-lic`">$(& $enc $r.LicenceRequise)</span>" } else { '' }
 
             @"
-<article class="item" data-status="$slug" data-priority="$(& $enc $r.Priorite)" data-text="$searchText">
+<article class="item" data-status="$slug" data-priority="$(& $enc $r.Priorite)" data-phase="$(& $enc $r.Phase)" data-text="$searchText">
   <header class="item-head">
     <span class="item-id">#$($r.Id)</span>
     <h3>$(& $enc $r.Requirement)</h3>
     <span class="badge badge-$slug">$(& $enc $r.StatutLibelle)</span>
     <span class="prio prio-$($r.Priorite.ToLower())">$(& $enc $r.PrioriteLibelle)</span>
+    <span class="tag tag-phase">$(& $enc $r.PhaseLibelle)</span>
+    $licence
+    $unscored
   </header>
   <div class="item-body">
     <div class="block"><span class="block-title">$(& $enc (T 'html.block.observed'))</span>$(ConvertTo-CceHtmlEncoded $r.ValeurConstatee)</div>
@@ -142,12 +149,14 @@ function Export-CceHtml {
   --bg:#f5f6f8; --surface:#ffffff; --border:#e3e6ea; --text:#1c1f23; --muted:#5f6b7a;
   --ok:#1a7f4b; --ok-bg:#e6f4ec; --ko:#b42318; --ko-bg:#fdeceb; --warn:#a86a00; --warn-bg:#fdf3e0;
   --manual:#1f4e79; --manual-bg:#e8f0f9; --na:#5f6b7a; --na-bg:#eef0f2; --accent:#0f6cbd;
+  --nap:#5b3fa8; --nap-bg:#efeaf9;
 }
 @media (prefers-color-scheme: dark){
   :root{
     --bg:#14171a; --surface:#1c2126; --border:#2c333a; --text:#e8eaed; --muted:#9aa5b1;
     --ok:#4ade80; --ok-bg:#12291d; --ko:#f87171; --ko-bg:#2c1616; --warn:#fbbf24; --warn-bg:#2c2413;
     --manual:#7cc0f5; --manual-bg:#13232f; --na:#9aa5b1; --na-bg:#232a30; --accent:#4aa3f0;
+    --nap:#b39ddb; --nap-bg:#241f33;
   }
 }
 *{box-sizing:border-box}
@@ -173,6 +182,10 @@ header.top h1{margin:0 0 6px;font-size:1.65rem;letter-spacing:-.01em}
 .kpi-label{display:block;font-size:.82rem;color:var(--muted)}
 .kpi-ok{border-left-color:var(--ok)} .kpi-ko{border-left-color:var(--ko)} .kpi-warn{border-left-color:var(--warn)}
 .kpi-manual{border-left-color:var(--manual)} .kpi-na{border-left-color:var(--na)}
+.kpi-nap{border-left-color:var(--nap)}
+.tag{font-size:.68rem;padding:2px 8px;border-radius:999px;background:var(--na-bg);color:var(--muted);white-space:nowrap}
+.tag-lic{background:var(--nap-bg);color:var(--nap)}
+.tag-info{background:var(--manual-bg);color:var(--manual);font-style:italic}
 .panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;margin-bottom:26px}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
 .panel h2{margin:0 0 14px;font-size:1rem}
@@ -201,6 +214,7 @@ header.top h1{margin:0 0 6px;font-size:1.65rem;letter-spacing:-.01em}
 .badge-ok{background:var(--ok-bg);color:var(--ok)} .badge-ko{background:var(--ko-bg);color:var(--ko)}
 .badge-warn{background:var(--warn-bg);color:var(--warn)} .badge-manual{background:var(--manual-bg);color:var(--manual)}
 .badge-na{background:var(--na-bg);color:var(--na)}
+.badge-nap{background:var(--nap-bg);color:var(--nap)}
 .prio{font-size:.72rem;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:2px 9px}
 .prio-blocking{color:var(--ko);border-color:var(--ko)}
 .item-body{padding:14px 16px;font-size:.9rem}
@@ -227,7 +241,7 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
   var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
   var items = Array.prototype.slice.call(document.querySelectorAll('.item'));
 
-  var filters = { status: 'all', priority: 'all' };
+  var filters = { status: 'all', priority: 'all', phase: 'all' };
 
   function apply() {
     var q = (search.value || '').trim().toLowerCase();
@@ -235,8 +249,12 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
     items.forEach(function (item) {
       var okStatus = filters.status === 'all' || item.dataset.status === filters.status;
       var okPrio = filters.priority === 'all' || item.dataset.priority === filters.priority;
+      // 'both' reste visible quelle que soit la phase demandee : ces exigences
+      // se verifient avant ET apres la mise en place.
+      var okPhase = filters.phase === 'all' || item.dataset.phase === filters.phase ||
+                    item.dataset.phase === 'both';
       var okText = q === '' || item.dataset.text.indexOf(q) !== -1;
-      item.classList.toggle('hidden', !(okStatus && okPrio && okText));
+      item.classList.toggle('hidden', !(okStatus && okPrio && okPhase && okText));
     });
 
     document.querySelectorAll('.group').forEach(function (group) {
@@ -312,9 +330,13 @@ footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--border);color
   <button class="chip" data-kind="status" data-value="warn">$(& $enc (T 'status.Warning'))</button>
   <button class="chip" data-kind="status" data-value="ok">$(& $enc (T 'status.Compliant'))</button>
   <button class="chip" data-kind="status" data-value="manual">$(& $enc (T 'status.Manual'))</button>
+  <button class="chip" data-kind="status" data-value="nap">$(& $enc (T 'status.NotApplicable'))</button>
   <button class="chip active" data-kind="priority" data-value="all">$(& $enc (T 'html.chip.allprio'))</button>
   <button class="chip" data-kind="priority" data-value="Blocking">$(& $enc (T 'priority.Blocking'))</button>
   <button class="chip" data-kind="priority" data-value="Recommended">$(& $enc (T 'priority.Recommended'))</button>
+  <button class="chip active" data-kind="phase" data-value="all">$(& $enc (T 'html.chip.allphase'))</button>
+  <button class="chip" data-kind="phase" data-value="pre-deployment">$(& $enc (T 'phase.pre-deployment'))</button>
+  <button class="chip" data-kind="phase" data-value="post-deployment">$(& $enc (T 'phase.post-deployment'))</button>
 </div>
 
 $($sectionsHtml -join "`n")

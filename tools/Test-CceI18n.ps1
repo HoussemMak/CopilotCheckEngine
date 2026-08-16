@@ -126,7 +126,7 @@ foreach ($key in ($tables[$reference].Keys | Sort-Object)) {
 # --- 4. Cles orphelines ---------------------------------------------------------
 # Certaines familles sont resolues dynamiquement (T "status.$token") : la recherche
 # statique ne peut pas les voir, on ne les signale donc pas comme orphelines.
-$dynamicPrefixes = @('status.', 'priority.')
+$dynamicPrefixes = @('status.', 'priority.', 'phase.')
 $orphans = @($tables[$reference].Keys | Where-Object {
     $key = $_
     (-not $used.ContainsKey($key)) -and (-not ($dynamicPrefixes | Where-Object { $key.StartsWith($_) }))

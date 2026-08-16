@@ -27,7 +27,7 @@ foreach ($folder in 'Private', 'Checks', 'Export') {
     Get-ChildItem -Path (Join-Path $Root "src\$folder") -Filter '*.ps1' | Sort-Object Name | ForEach-Object { . $_.FullName }
 }
 
-$validStatus = @('Compliant', 'NonCompliant', 'Warning', 'Manual', 'NotEvaluated')
+$validStatus = @('Compliant', 'NonCompliant', 'Warning', 'Manual', 'NotEvaluated', 'NotApplicable')
 $failures = [System.Collections.Generic.List[string]]::new()
 
 Write-Host ''
@@ -50,7 +50,12 @@ foreach ($lang in $Languages) {
     foreach ($s in $validStatus) { $counts[$s] = 0 }
     $executed = 0
 
-    for ($id = 1; $id -le 59; $id++) {
+    # Le perimetre suit le referentiel, jamais une borne codee en dur : une exigence
+    # ajoutee au catalogue sans fonction correspondante doit faire echouer le test.
+    $catalog = Get-Content -Path (Join-Path $Root 'data\checklist-catalog.json') -Raw -Encoding utf8 | ConvertFrom-Json
+    $ids = @($catalog.items | ForEach-Object { [int] $_.Id } | Sort-Object)
+
+    foreach ($id in $ids) {
         $name = 'Invoke-CceCheck{0:D2}' -f $id
 
         if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {

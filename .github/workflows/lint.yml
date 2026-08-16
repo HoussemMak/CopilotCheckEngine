@@ -58,9 +58,13 @@ jobs:
         shell: pwsh
         run: ./tools/Test-CceI18n.ps1
 
-      - name: Execution a vide des 59 controles (fr + en)
+      - name: Execution a vide de tous les controles (fr + en)
         shell: pwsh
         run: ./tools/Test-CceChecks.ps1
+
+      - name: Non-regression (mode strict, reponses Graph nulles)
+        shell: pwsh
+        run: ./tools/Test-CceRegression.ps1
 
       - name: Test de fumee (exports XLSX + HTML sans tenant, fr + en)
         shell: pwsh

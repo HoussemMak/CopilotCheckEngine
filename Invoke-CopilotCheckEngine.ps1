@@ -97,7 +97,10 @@ param(
     [string] $Organization,
     [string] $SharePointAdminUrl,
 
-    [ValidateSet('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams')]
+    # PowerPlatform et Commerce ne sont pas dans la valeur par defaut : ce sont des
+    # domaines d'administration distincts, qui exigent un role et un consentement
+    # supplementaires chez le client. A demander explicitement.
+    [ValidateSet('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams', 'PowerPlatform', 'Commerce')]
     [string[]] $Services = @('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams'),
 
     [ValidateSet('fr', 'en')]
@@ -108,6 +111,20 @@ param(
 
     [switch] $IncludeLocalChecks,
     [int]    $MailboxSampleSize = 100,
+
+    # Terme metier connu et indexe, utilise par la sonde fonctionnelle de l'index
+    # semantique. Sans valeur, la sonde reste manuelle plutot que de produire un
+    # faux ecart.
+    [string] $RetrievalProbeTerm,
+
+    # Autorise le declenchement des rapports qui n'existent pas encore (gouvernance
+    # d'acces aux donnees, agents SharePoint). Desactive par defaut : le moteur est
+    # sans effet de bord tant que ce commutateur n'est pas passe explicitement.
+    [switch] $AllowReportGeneration,
+
+    # Expression reguliere de la convention de nommage des agents, propre au client.
+    # Sans valeur, le controle inventorie les agents sans juger leur nom.
+    [string] $AgentNamingPattern,
     [switch] $SkipConnect,
     [switch] $KeepConnections,
     [switch] $OpenReport,
@@ -148,11 +165,16 @@ $catalog = Get-Content -Path $CatalogPath -Raw -Encoding utf8 | ConvertFrom-Json
 # Contexte
 # ---------------------------------------------------------------------------
 $script:CceContext = New-CceContext -Configuration @{
-    IncludeLocalChecks = [bool] $IncludeLocalChecks
-    MailboxSampleSize  = $MailboxSampleSize
-    CatalogTitle       = $catalog.title
-    CatalogVersion     = $catalog.version
-    RequestedServices  = $Services
+    IncludeLocalChecks    = [bool] $IncludeLocalChecks
+    MailboxSampleSize     = $MailboxSampleSize
+    CatalogTitle          = $catalog.title
+    CatalogVersion        = $catalog.version
+    RequestedServices     = $Services
+    RetrievalProbeTerm    = $RetrievalProbeTerm
+    AllowReportGeneration = [bool] $AllowReportGeneration
+    AgentNamingPattern    = $AgentNamingPattern
+    # Renseigne apres connexion : plusieurs sondes n'existent qu'en delegue.
+    AuthMode              = if ($ClientId -and ($CertificateThumbprint -or $ClientSecret)) { 'application' } else { 'delegated' }
 }
 $Context = $script:CceContext
 
@@ -176,6 +198,8 @@ if ($SkipConnect) {
             'Purview'    { { $null -ne (Get-Label -ErrorAction Stop) } }
             'SharePoint' { { $null -ne (Get-SPOTenant -ErrorAction Stop) } }
             'Teams'      { { $null -ne (Get-CsTeamsMeetingPolicy -Identity Global -ErrorAction Stop) } }
+            'PowerPlatform' { { $null -ne (Get-Command Get-AdminPowerApp -ErrorAction Stop) } }
+            'Commerce'      { { $null -ne (Get-Command Get-MSCommerceProductPolicies -ErrorAction Stop) } }
         }
         $Context.Services.$svc = [bool] (Get-CceSafe $probe -What ((T 'conn.probe') -f $svc))
     }
@@ -247,11 +271,19 @@ foreach ($item in $catalog.items) {
     # et on derive le jeton canonique pour toute la logique de calcul.
     $priorityToken = ConvertTo-CceCanonicalPriority -Priority $item.Priority
 
+    $phase = if ($item.PSObject.Properties.Name -contains 'Phase' -and $item.Phase) { $item.Phase } else { 'pre-deployment' }
+
     $results.Add([pscustomobject]@{
         Id                   = $item.Id
         Section              = $item.Section
         Categorie            = $item.Category
         Requirement          = $item.Requirement
+        Phase                = $phase
+        PhaseLibelle         = T "phase.$phase"
+        Mode                 = if ($item.PSObject.Properties.Name -contains 'Mode') { $item.Mode } else { '' }
+        AuthMode             = if ($item.PSObject.Properties.Name -contains 'AuthMode') { $item.AuthMode } else { 'both' }
+        LicenceRequise       = if ($item.PSObject.Properties.Name -contains 'RequiresLicense') { $item.RequiresLicense } else { '' }
+        Notee                = if ($item.PSObject.Properties.Name -contains 'Scored') { [bool] $item.Scored } else { $true }
         Priorite             = $priorityToken
         PrioriteLibelle      = Get-CcePriorityLabel -Priority $priorityToken
         Statut               = $outcome.Status
@@ -310,14 +342,15 @@ Write-Host ''
 Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
 $line = { param($label, $value, $color) Write-Host ('  {0,-34} : {1}' -f $label, $value) -ForegroundColor $color }
 
-& $line (T 'sum.tenant')       $(if ($Context.Tenant.Name) { $Context.Tenant.Name } else { $Context.Tenant.Id }) 'White'
-& $line (T 'sum.total')        $stats.Total          'White'
-& $line (T 'sum.compliant')    $stats.Conforme       'Green'
-& $line (T 'sum.noncompliant') $stats.NonConforme    'Red'
-& $line (T 'sum.warning')      $stats.Attention      'Yellow'
-& $line (T 'sum.manual')       $stats.Manuel         'Cyan'
-& $line (T 'sum.notevaluated') $stats.NonEvalue      'DarkGray'
-& $line (T 'sum.rate')         $stats.TauxConformite 'Cyan'
+& $line (T 'sum.tenant')        $(if ($Context.Tenant.Name) { $Context.Tenant.Name } else { $Context.Tenant.Id }) 'White'
+& $line (T 'sum.total')         $stats.Total          'White'
+& $line (T 'sum.compliant')     $stats.Conforme       'Green'
+& $line (T 'sum.noncompliant')  $stats.NonConforme    'Red'
+& $line (T 'sum.warning')       $stats.Attention      'Yellow'
+& $line (T 'sum.manual')        $stats.Manuel         'Cyan'
+& $line (T 'sum.notapplicable') $stats.NonApplicable  'DarkGray'
+& $line (T 'sum.notevaluated')  $stats.NonEvalue      'DarkGray'
+& $line (T 'sum.rate')          $stats.TauxConformite 'Cyan'
 & $line (T 'sum.blockingko')   $stats.BloquantsKo.Count $(if ($stats.BloquantsKo.Count -gt 0) { 'Red' } else { 'Green' })
 Write-Host '  ------------------------------------------------------------' -ForegroundColor DarkGray
 

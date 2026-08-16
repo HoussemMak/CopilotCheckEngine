@@ -17,18 +17,39 @@ function Get-CceStatistics {
     [CmdletBinding()] param([Parameter(Mandatory)] $Results)
 
     $all = @($Results)
-    $evaluableTokens = @('Compliant', 'NonCompliant', 'Warning')
+    $evaluableTokens = $script:CceScorableStatus
+
+    # Une exigence hors score (depreciee, informative, en preversion) reste dans le
+    # rapport mais ne pese ni au numerateur ni au denominateur.
+    $scored = @($all | Where-Object { $_.Notee -ne $false })
+    $unscored = @($all | Where-Object { $_.Notee -eq $false })
 
     $byStatus = @{}
     foreach ($s in $script:CceStatusOrder) {
-        $byStatus[$s] = @($all | Where-Object { $_.Statut -eq $s }).Count
+        $byStatus[$s] = @($scored | Where-Object { $_.Statut -eq $s }).Count
     }
 
     $evaluables = $byStatus['Compliant'] + $byStatus['NonCompliant'] + $byStatus['Warning']
     $rate = if ($evaluables -gt 0) { [math]::Round(100 * $byStatus['Compliant'] / $evaluables, 1) } else { 0 }
 
+    $byPhase = foreach ($ph in @('pre-deployment', 'post-deployment', 'both')) {
+        $subset = @($scored | Where-Object { $_.Phase -eq $ph })
+        $ok = @($subset | Where-Object { $_.Statut -eq 'Compliant' }).Count
+        $sub = @($subset | Where-Object { $_.Statut -in $evaluableTokens }).Count
+
+        [pscustomobject]@{
+            Phase        = $ph
+            Libelle      = T "phase.$ph"
+            Total        = $subset.Count
+            Evaluables   = $sub
+            Conforme     = $ok
+            NonConforme  = @($subset | Where-Object { $_.Statut -eq 'NonCompliant' }).Count
+            TauxPourcent = if ($sub -gt 0) { [math]::Round(100 * $ok / $sub, 1) } else { 0 }
+        }
+    }
+
     $byPriority = foreach ($p in $script:CcePriorityOrder) {
-        $subset = @($all | Where-Object { $_.Priorite -eq $p })
+        $subset = @($scored | Where-Object { $_.Priorite -eq $p })
         $ok = @($subset | Where-Object { $_.Statut -eq 'Compliant' }).Count
         $sub = @($subset | Where-Object { $_.Statut -in $evaluableTokens }).Count
 
@@ -46,7 +67,7 @@ function Get-CceStatistics {
         }
     }
 
-    $bySection = foreach ($group in ($all | Group-Object Section)) {
+    $bySection = foreach ($group in ($scored | Group-Object Section)) {
         $ok = @($group.Group | Where-Object { $_.Statut -eq 'Compliant' }).Count
         $sub = @($group.Group | Where-Object { $_.Statut -in $evaluableTokens }).Count
 
@@ -65,16 +86,21 @@ function Get-CceStatistics {
 
     [pscustomobject]@{
         Total          = $all.Count
+        Notees         = $scored.Count
+        HorsScore      = $unscored.Count
         Conforme       = $byStatus['Compliant']
         NonConforme    = $byStatus['NonCompliant']
         Attention      = $byStatus['Warning']
         Manuel         = $byStatus['Manual']
         NonEvalue      = $byStatus['NotEvaluated']
+        NonApplicable  = $byStatus['NotApplicable']
         Evaluables     = $evaluables
         TauxConformite = $rate
+        ParPhase       = @($byPhase)
         ParPriorite    = @($byPriority)
         ParSection     = @($bySection)
-        BloquantsKo    = @($all | Where-Object { $_.Priorite -eq 'Blocking' -and $_.Statut -eq 'NonCompliant' })
+        BloquantsKo    = @($scored | Where-Object { $_.Priorite -eq 'Blocking' -and $_.Statut -eq 'NonCompliant' })
+        NonApplicables = @($scored | Where-Object { $_.Statut -eq 'NotApplicable' })
     }
 }
 
@@ -122,16 +148,20 @@ function Export-CceExcel {
     & $add (T 'sum.duration')     ([math]::Round(((Get-Date) - $Context.StartedAt).TotalSeconds, 1))
     & $add (T 'sum.language')     (Get-CceLanguage).ToUpper()
     & $add '' ''
-    & $add (T 'sum.total')        $stats.Total
-    & $add (T 'sum.compliant')    $stats.Conforme
-    & $add (T 'sum.noncompliant') $stats.NonConforme
-    & $add (T 'sum.warning')      $stats.Attention
-    & $add (T 'sum.manual')       $stats.Manuel
-    & $add (T 'sum.notevaluated') $stats.NonEvalue
+    & $add (T 'sum.total')          $stats.Total
+    & $add (T 'sum.scored')         $stats.Notees
+    & $add (T 'sum.informational')  $stats.HorsScore
     & $add '' ''
-    & $add (T 'sum.evaluable')    $stats.Evaluables
-    & $add (T 'sum.rate')         $stats.TauxConformite
-    & $add (T 'sum.blockingko')   $stats.BloquantsKo.Count
+    & $add (T 'sum.compliant')      $stats.Conforme
+    & $add (T 'sum.noncompliant')   $stats.NonConforme
+    & $add (T 'sum.warning')        $stats.Attention
+    & $add (T 'sum.manual')         $stats.Manuel
+    & $add (T 'sum.notevaluated')   $stats.NonEvalue
+    & $add (T 'sum.notapplicable')  $stats.NonApplicable
+    & $add '' ''
+    & $add (T 'sum.evaluable')      $stats.Evaluables
+    & $add (T 'sum.rate')           $stats.TauxConformite
+    & $add (T 'sum.blockingko')     $stats.BloquantsKo.Count
     & $add '' ''
 
     foreach ($svc in $Context.Services.GetEnumerator()) {
@@ -164,11 +194,24 @@ function Export-CceExcel {
         @{N = (T 'status.NotEvaluated'); E = { $_.NonEvalue } },
         @{N = (T 'col.rate');       E = { $_.TauxPourcent } }
 
-    $priorityTable | Export-Excel -Path $Path -WorksheetName $sheetSummary -StartRow ($summary.Count + 4) `
+    $phaseTable = $stats.ParPhase | Select-Object `
+        @{N = (T 'col.phase');      E = { $_.Libelle } },
+        @{N = (T 'col.total');      E = { $_.Total } },
+        @{N = (T 'col.evaluable');  E = { $_.Evaluables } },
+        @{N = (T 'status.Compliant');    E = { $_.Conforme } },
+        @{N = (T 'status.NonCompliant'); E = { $_.NonConforme } },
+        @{N = (T 'col.rate');       E = { $_.TauxPourcent } }
+
+    $row = $summary.Count + 4
+    $phaseTable | Export-Excel -Path $Path -WorksheetName $sheetSummary -StartRow $row `
+        -AutoSize -BoldTopRow -TableName 'ParPhase' -TableStyle Medium2
+
+    $row += @($stats.ParPhase).Count + 3
+    $priorityTable | Export-Excel -Path $Path -WorksheetName $sheetSummary -StartRow $row `
         -AutoSize -BoldTopRow -TableName 'ParPriorite' -TableStyle Medium2
 
-    $sectionTable | Export-Excel -Path $Path -WorksheetName $sheetSummary `
-        -StartRow ($summary.Count + 4 + @($stats.ParPriorite).Count + 3) `
+    $row += @($stats.ParPriorite).Count + 3
+    $sectionTable | Export-Excel -Path $Path -WorksheetName $sheetSummary -StartRow $row `
         -AutoSize -BoldTopRow -TableName 'ParSection' -TableStyle Medium2
 
     # ---------- Onglet Checklist ----------
@@ -177,6 +220,7 @@ function Export-CceExcel {
         @{N = (T 'col.section');     E = { $_.Section } },
         @{N = (T 'col.category');    E = { $_.Categorie } },
         @{N = (T 'col.requirement'); E = { $_.Requirement } },
+        @{N = (T 'col.phase');       E = { $_.PhaseLibelle } },
         @{N = (T 'col.priority');    E = { $_.PrioriteLibelle } },
         @{N = (T 'col.status');      E = { $_.StatutLibelle } },
         @{N = (T 'col.observed');    E = { $_.ValeurConstatee } },
@@ -185,6 +229,10 @@ function Export-CceExcel {
         @{N = (T 'col.rationale');   E = { $_.Pourquoi } },
         @{N = (T 'col.howto');       E = { $_.Procedure } },
         @{N = (T 'col.command');     E = { $_.CommandeVerification } },
+        @{N = (T 'col.mode');        E = { $_.Mode } },
+        @{N = (T 'col.authmode');    E = { $_.AuthMode } },
+        @{N = (T 'col.license');     E = { $_.LicenceRequise } },
+        @{N = (T 'col.scored');      E = { if ($_.Notee -eq $false) { 'non' } else { 'oui' } } },
         @{N = (T 'col.reference');   E = { $_.Reference } }
 
     # La mise en forme conditionnelle porte sur le libelle affiche, donc localise.
@@ -194,21 +242,25 @@ function Export-CceExcel {
         New-ConditionalText -Text (T 'status.Warning')      -BackgroundColor '#FFEB9C' -ConditionalTextColor '#9C6500'
         New-ConditionalText -Text (T 'status.Manual')       -BackgroundColor '#DDEBF7' -ConditionalTextColor '#1F4E78'
         New-ConditionalText -Text (T 'status.NotEvaluated') -BackgroundColor '#E7E6E6' -ConditionalTextColor '#595959'
+        New-ConditionalText -Text (T 'status.NotApplicable') -BackgroundColor '#EDE7F6' -ConditionalTextColor '#4527A0'
     )
 
     $excel = $checklist | Export-Excel -Path $Path -WorksheetName $sheetChecklist -AutoSize -BoldTopRow `
         -FreezeTopRow -AutoFilter -ConditionalText $conditions -PassThru
 
+    # Ordre des colonnes : 1 id, 2 section, 3 categorie, 4 exigence, 5 phase, 6 priorite,
+    # 7 statut, 8 constate, 9 attendu, 10 action, 11 pourquoi, 12 procedure, 13 commande,
+    # 14 mode, 15 authentification, 16 licence, 17 notee, 18 reference.
     $ws = $excel.Workbook.Worksheets[$sheetChecklist]
-    $ws.Column(4).Width = 55   # exigence
-    $ws.Column(7).Width = 55   # valeur constatee
-    $ws.Column(8).Width = 45   # valeur attendue
-    $ws.Column(9).Width = 55   # action corrective
-    $ws.Column(10).Width = 70  # pourquoi
-    $ws.Column(11).Width = 60  # procedure
-    $ws.Column(12).Width = 55  # commande
-    $ws.Column(13).Width = 50  # reference
-    foreach ($c in 4, 7, 8, 9, 10, 11, 12) {
+    $ws.Column(4).Width = 55
+    $ws.Column(8).Width = 55
+    $ws.Column(9).Width = 45
+    $ws.Column(10).Width = 55
+    $ws.Column(11).Width = 70
+    $ws.Column(12).Width = 60
+    $ws.Column(13).Width = 55
+    $ws.Column(18).Width = 50
+    foreach ($c in 4, 8, 9, 10, 11, 12, 13) {
         $ws.Column($c).Style.WrapText = $true
         $ws.Column($c).Style.VerticalAlignment = 'Top'
     }

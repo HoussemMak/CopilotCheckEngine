@@ -1,10 +1,10 @@
-# Copilot Check Engine
+﻿# Copilot Check Engine
 
 **English: [README.en.md](README.en.md)**
 
 Genere la checklist de configuration **Microsoft 365 Copilot** deja renseignee avec les donnees reelles du tenant sur lequel le script est execute, et l'exporte en **XLSX**, **HTML** et **JSON**, en francais ou en anglais.
 
-Une seule commande : connexion, collecte, evaluation des 59 exigences, production des rapports.
+Une seule commande : connexion, collecte, evaluation des 87 exigences, production des rapports.
 
 ```powershell
 .\Invoke-CopilotCheckEngine.ps1 -TenantId contoso.onmicrosoft.com -AdminUpn admin@contoso.com -OpenReport
@@ -18,7 +18,7 @@ Une seule commande : connexion, collecte, evaluation des 59 exigences, productio
 
 | Sortie | Contenu |
 | --- | --- |
-| `CopilotCheck_<tenant>_<langue>_<horodatage>.xlsx` | 4 onglets : **Synthese** (indicateurs, taux par priorite et par domaine), **Checklist** (59 lignes, mise en forme conditionnelle, filtres), **Preuves** (donnees brutes collectees), **Journal** (trace d'execution). |
+| `CopilotCheck_<tenant>_<langue>_<horodatage>.xlsx` | 4 onglets : **Synthese** (indicateurs, taux par priorite et par domaine), **Checklist** (87 lignes, mise en forme conditionnelle, filtres), **Preuves** (donnees brutes collectees), **Journal** (trace d'execution). |
 | `CopilotCheck_<tenant>_<langue>_<horodatage>.html` | Rapport autonome : jauge de conformite, indicateurs, barres par priorite et par domaine, recherche plein texte, filtres par statut et par priorite, mise en page d'impression. Aucune ressource externe. |
 | `CopilotCheck_<tenant>_<langue>_<horodatage>.json` | Meme contenu, exploitable en CI ou par un tableau de bord. |
 
@@ -33,18 +33,19 @@ Chaque exigence est restituee avec : la **valeur constatee sur le tenant**, la v
 | `Attention` | Configuration partielle ou arbitrage de gouvernance requis. |
 | `Manuel` | Aucune API publique : le moteur fournit la procedure, la validation reste humaine. |
 | `Non evalue` | Service non connecte, droits insuffisants ou erreur pendant le controle. |
+| `Non applicable` | La capacite auditee n'est pas detenue par le tenant (module ou licence absente). Sort du score. |
 
-Le taux de conformite est calcule sur la base evaluable automatiquement (`Conforme + Non conforme + Attention`), afin que les exigences manuelles ne faussent pas l'indicateur.
+Le taux de conformite ne contient que ce que le moteur a mesure lui-meme, sur des capacites que le tenant possede reellement : il se calcule sur `Conforme + Non conforme + Attention`. Les exigences manuelles, non applicables, informatives ou depreciees figurent au rapport sans peser sur l'indicateur.
 
 ---
 
 ## Couverture
 
-Sur les 59 exigences du referentiel :
+Sur les 87 exigences du referentiel :
 
-- **42** sont evaluees automatiquement en interrogeant le tenant ;
-- **2** necessitent l'inspection d'un poste (`-IncludeLocalChecks`) ;
-- **15** relevent d'un parametre de portail sans API publique ou d'un livrable organisationnel, et sont restituees en `Manuel` avec la procedure exacte.
+- **73** sont evaluees automatiquement en interrogeant le tenant ;
+- **6** necessitent l'inspection d'un poste (`-IncludeLocalChecks`) ;
+- **8** relevent d'un parametre de portail sans API publique ou d'un livrable organisationnel, et sont restituees en `Manuel` avec la procedure exacte.
 
 Le detail exigence par exigence, avec la source interrogee, est dans [`docs/COVERAGE.md`](docs/COVERAGE.md).
 
@@ -141,7 +142,10 @@ affichables se trouvent dans `PrioriteLibelle` et `StatutLibelle`.
 | `-ClientId`, `-CertificateThumbprint`, `-ClientSecret`, `-Organization` | Execution non interactive (app-only). |
 | `-Language` | Langue des rapports : `fr` (defaut) ou `en`. |
 | `-SharePointAdminUrl` | Force l'URL d'administration SharePoint (deduite du domaine par defaut sinon). |
-| `-Services` | Sous-ensemble parmi `Graph`, `Exchange`, `Purview`, `SharePoint`, `Teams`. |
+| `-Services` | Sous-ensemble parmi `Graph`, `Exchange`, `Purview`, `SharePoint`, `Teams`, plus `PowerPlatform` et `Commerce` (optionnels, domaines d'administration distincts). |
+| `-RetrievalProbeTerm` | Terme metier connu et indexe, pour la sonde fonctionnelle de l'index semantique. Sans valeur, la sonde reste manuelle. |
+| `-AllowReportGeneration` | Autorise le declenchement des rapports SharePoint qui n'existent pas encore. Desactive par defaut : le moteur reste sans effet de bord. |
+| `-AgentNamingPattern` | Expression reguliere de la convention de nommage des agents. Sans valeur, le controle inventorie sans juger. |
 | `-OutputPath` | Repertoire de sortie. Defaut : `.\output`. |
 | `-IncludeLocalChecks` | Ajoute l'inspection du poste courant. |
 | `-MailboxSampleSize` | Nombre de boites analysees pour les controles Exchange. Defaut : 100. |
@@ -156,7 +160,7 @@ affichables se trouvent dans `PrioriteLibelle` et `StatutLibelle`.
 
 ```
 Invoke-CopilotCheckEngine.ps1     Point d'entree : connexions, orchestration, exports
-data/checklist-catalog.json       Referentiel des 59 exigences, francais (source de verite)
+data/checklist-catalog.json       Referentiel des 87 exigences, francais (source de verite)
 data/checklist-catalog.en.json    Meme referentiel, anglais
 data/strings.fr.json              Gabarits des messages runtime, francais
 data/strings.en.json              Gabarits des messages runtime, anglais
@@ -167,6 +171,7 @@ tools/Convert-XlsxToCatalog.ps1   Regenere le catalogue depuis le classeur de re
 tools/New-CceCoverageDoc.ps1      Regenere docs/COVERAGE.md et docs/COVERAGE.en.md
 tools/New-CceDemoReport.ps1       Rapport de demonstration (test de fumee, sans tenant)
 tools/Test-CceI18n.ps1            Valide les cles de ressources, les placeholders et les catalogues
+tools/Test-CceChecks.ps1          Execute les 87 controles a vide dans les deux langues
 samples/                          Exemples de sortie
 docs/COVERAGE.md                  Source interrogee pour chaque exigence
 ```

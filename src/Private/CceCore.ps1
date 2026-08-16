@@ -9,14 +9,19 @@
 # New-CceResult les convertit ici. Toute la logique aval (statistiques, filtres,
 # mise en forme conditionnelle) raisonne sur le jeton canonique, jamais sur l'affichage.
 $script:CceStatusCanonical = @{
-    'Conforme'     = 'Compliant'
-    'Non conforme' = 'NonCompliant'
-    'Attention'    = 'Warning'
-    'Manuel'       = 'Manual'
-    'Non evalue'   = 'NotEvaluated'
+    'Conforme'       = 'Compliant'
+    'Non conforme'   = 'NonCompliant'
+    'Attention'      = 'Warning'
+    'Manuel'         = 'Manual'
+    'Non evalue'     = 'NotEvaluated'
+    'Non applicable' = 'NotApplicable'
 }
 
-$script:CceStatusOrder = @('Compliant', 'NonCompliant', 'Warning', 'Manual', 'NotEvaluated')
+$script:CceStatusOrder = @('Compliant', 'NonCompliant', 'Warning', 'Manual', 'NotEvaluated', 'NotApplicable')
+
+# Seuls ces trois statuts entrent au denominateur du taux de conformite : le moteur
+# ne note que ce qu'il a lui-meme mesure, sur des capacites que le tenant possede.
+$script:CceScorableStatus = @('Compliant', 'NonCompliant', 'Warning')
 
 # Idem pour les priorites : le catalogue est localise, le moteur ne l'est pas.
 $script:CcePriorityCanonical = @{
@@ -91,7 +96,8 @@ function New-CceResult {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)] [ValidateSet('Conforme', 'Non conforme', 'Attention', 'Manuel', 'Non evalue')]
+        [Parameter(Mandatory)]
+        [ValidateSet('Conforme', 'Non conforme', 'Attention', 'Manuel', 'Non evalue', 'Non applicable')]
         [string] $Status,
 
         [string] $Observed = '',
@@ -175,11 +181,15 @@ function New-CceContext {
         StartedAt     = Get-Date
         Tenant        = [ordered]@{ Id = ''; Name = ''; DefaultDomain = '' }
         Services      = [ordered]@{
-            Graph      = $false
-            Exchange   = $false
-            Purview    = $false
-            SharePoint = $false
-            Teams      = $false
+            Graph         = $false
+            Exchange      = $false
+            Purview       = $false
+            SharePoint    = $false
+            Teams         = $false
+            # Domaines d'administration distincts, hors perimetre par defaut :
+            # ils exigent leur propre role et leur propre consentement.
+            PowerPlatform = $false
+            Commerce      = $false
         }
         ServiceError  = [ordered]@{}
         Cache         = @{}
@@ -197,12 +207,50 @@ function Test-CceService {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)] [ValidateSet('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams')]
+        [Parameter(Mandatory)]
+        [ValidateSet('Graph', 'Exchange', 'Purview', 'SharePoint', 'Teams', 'PowerPlatform', 'Commerce')]
         [string] $Service,
         [Parameter(Mandatory)] $Context
     )
 
     [bool] $Context.Services.$Service
+}
+
+function New-CceNotApplicable {
+    <#
+    .SYNOPSIS
+        Resultat standard lorsque le controle ne peut pas s'appliquer au tenant.
+    .DESCRIPTION
+        A reserver aux cas ou la capacite auditee n'est pas detenue par l'organisation
+        (module complementaire absent, licence non souscrite, fonctionnalite hors perimetre).
+        Ce statut sort du denominateur du taux de conformite : compter en ecart une
+        capacite que le client n'a pas achetee produirait un score faux.
+        A ne pas confondre avec "Non evalue", qui signale un manque de droits ou une erreur.
+    .PARAMETER Reason
+        Ce qui rend le controle inapplicable, en clair.
+    .PARAMETER RequiredLicense
+        Licence ou module complementaire qui debloquerait le controle, le cas echeant.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Reason,
+        [string] $RequiredLicense = '',
+        [string] $Evidence = ''
+    )
+
+    $observed = if ($RequiredLicense) {
+        (T 'core.notapplicable.obs.license') -f $RequiredLicense
+    }
+    else {
+        T 'core.notapplicable.obs'
+    }
+
+    $remediation = if ($RequiredLicense) { (T 'core.notapplicable.rem') -f $RequiredLicense } else { '' }
+
+    New-CceResult -Status 'Non applicable' `
+        -Observed $observed `
+        -Evidence $(if ($Evidence) { $Evidence } else { $Reason }) `
+        -Remediation $remediation
 }
 
 function New-CceNotEvaluated {
