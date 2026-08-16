@@ -91,7 +91,31 @@ else {
     Write-Host "  OK    Invoke-CceCheck04 : panne de lecture rendue '$($result.Status)', pas un ecart" -ForegroundColor Green
 }
 
-# --- 3. Aucun acces .value non garde dans le code --------------------------------
+# --- 3. Bilan de connexion quand aucun service ne repond -------------------------
+# Cas rencontre en conditions reelles : la connexion Graph echoue, le pipeline de
+# comptage ne rend aucun element, et .Count levait sur $null au moment meme ou il
+# fallait afficher le bilan. L'audit s'arretait sur une erreur au lieu de rendre
+# un rapport "Non evalue".
+Write-Host ''
+Write-Host '  Cas : aucun service connecte (bilan de connexion)'
+$empty = New-TestContext
+foreach ($k in @($empty.Services.Keys)) { $empty.Services.$k = $false }
+
+Assert-NoThrow 'comptage des services connectes' {
+    @($empty.Services.GetEnumerator() | Where-Object { $_.Value }).Count
+}
+
+$summaryLine = Select-String -Path (Join-Path $Root 'src\Private\CceConnect.ps1') -Pattern '\$connected\s*=' |
+    Select-Object -First 1
+if ($summaryLine -and $summaryLine.Line -match '@\(') {
+    Write-Host '  OK    le bilan enveloppe son pipeline' -ForegroundColor Green
+}
+else {
+    Write-Host '  ECHEC le bilan de connexion ne protege pas son pipeline' -ForegroundColor Red
+    $failures++
+}
+
+# --- 4. Aucun acces .value non garde dans le code --------------------------------
 Write-Host ''
 Write-Host '  Cas : aucun acces .value non garde'
 # Recherche sensible a la casse : ".value" en minuscules designe la collection d'une

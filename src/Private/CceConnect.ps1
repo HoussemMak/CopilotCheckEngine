@@ -22,6 +22,60 @@ $script:CceGraphScopes = @(
     'RoleManagement.Read.Directory'  # attributions de roles d'administration
 )
 
+function Import-CceGraphModule {
+    <#
+    .SYNOPSIS
+        Charge un module Microsoft.Graph en evitant le conflit d'assembly .NET.
+    .DESCRIPTION
+        Les modules Microsoft.Graph embarquent des assemblies fortement nommees. Deux
+        versions differentes ne peuvent pas coexister dans un meme processus : la
+        seconde echoue sur "Assembly with same name is already loaded", et aucun
+        -Force ne resout cela.
+
+        Deux precautions :
+          - si le module est deja charge, on le reutilise tel quel plutot que d'en
+            importer une autre version ;
+          - sinon on epingle explicitement une version, sans quoi une dependance
+            d'un sous-module peut en charger une seconde.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] [string] $Name,
+        [version] $PinnedVersion
+    )
+
+    $loaded = Get-Module -Name $Name
+    if ($loaded) { return $loaded }
+
+    $available = @(Get-Module -ListAvailable -Name $Name | Sort-Object Version -Descending)
+    if ($available.Count -eq 0) { throw ((T 'conn.module.missing') -f $Name) }
+
+    # Toute la famille Microsoft.Graph doit partager la meme version.
+    $target = if ($PinnedVersion) {
+        $match = $available | Where-Object { $_.Version -eq $PinnedVersion } | Select-Object -First 1
+        if ($match) { $match } else { $available[0] }
+    }
+    else { $available[0] }
+
+    if ($available.Count -gt 1) {
+        Write-CceLog ((T 'conn.module.multi') -f $Name, $available.Count, $target.Version) -Level WARN
+    }
+
+    Import-Module -Name $Name -RequiredVersion $target.Version -ErrorAction Stop
+    Get-Module -Name $Name
+}
+
+function Get-CceGraphVersion {
+    <# Version de la famille Microsoft.Graph retenue pour cette execution. #>
+    [CmdletBinding()] param($Context)
+
+    if ($Context.Cache.ContainsKey('GraphVersion')) { return $Context.Cache['GraphVersion'] }
+    $module = Get-Module -Name 'Microsoft.Graph.Authentication'
+    $version = if ($module) { $module.Version } else { $null }
+    $Context.Cache['GraphVersion'] = $version
+    $version
+}
+
 function Connect-CceGraph {
     [CmdletBinding()]
     param($Context, [hashtable] $Auth)
@@ -29,7 +83,7 @@ function Connect-CceGraph {
     Write-CceLog ((T 'conn.start') -f 'Microsoft Graph') -Level STEP
 
     try {
-        Import-Module Microsoft.Graph.Authentication -ErrorAction Stop
+        Import-CceGraphModule -Name 'Microsoft.Graph.Authentication' | Out-Null
 
         if ($Auth.ClientId -and $Auth.CertificateThumbprint) {
             Connect-MgGraph -TenantId $Auth.TenantId -ClientId $Auth.ClientId `
@@ -47,6 +101,16 @@ function Connect-CceGraph {
         }
 
         $ctx = Get-MgContext
+
+        # Les sous-modules Graph sont charges explicitement a la MEME version que
+        # Microsoft.Graph.Authentication. Sans cela, leur chargement automatique par
+        # Get-MgUser ou Get-MgSubscribedSku peut tirer une autre version et provoquer
+        # le conflit d'assembly au milieu de l'audit, apres la connexion.
+        $graphVersion = Get-CceGraphVersion -Context $Context
+        foreach ($sub in 'Microsoft.Graph.Identity.DirectoryManagement', 'Microsoft.Graph.Users') {
+            Get-CceSafe { Import-CceGraphModule -Name $sub -PinnedVersion $graphVersion } -What "Import $sub" | Out-Null
+        }
+
         $org = Get-CceSafe { Get-MgOrganization -ErrorAction Stop } -What 'Get-MgOrganization'
 
         $Context.Tenant.Id = $ctx.TenantId
@@ -59,9 +123,41 @@ function Connect-CceGraph {
         Write-CceLog ((T 'conn.graph.ok') -f $Context.Tenant.Name, $Context.Tenant.Id) -Level OK
     }
     catch {
-        $Context.ServiceError['Graph'] = $_.Exception.Message
-        Write-CceLog ((T 'conn.failed') -f 'Microsoft Graph', $_.Exception.Message) -Level ERROR
+        $message = $_.Exception.Message
+        $Context.ServiceError['Graph'] = $message
+        Write-CceLog ((T 'conn.failed') -f 'Microsoft Graph', $message) -Level ERROR
+
+        # Le conflit d'assembly est le seul echec que l'utilisateur ne peut pas
+        # diagnostiquer seul : on lui donne la commande de remise en etat.
+        if ($message -match 'Assembly with same name is already loaded|Could not load file or assembly') {
+            Write-CceLog (T 'conn.graph.assembly') -Level ERROR
+            foreach ($line in @(Get-CceGraphCleanupHint)) { Write-CceLog $line -Level INFO }
+        }
     }
+}
+
+function Get-CceGraphCleanupHint {
+    <#
+    .SYNOPSIS
+        Lignes de diagnostic listant les versions Microsoft.Graph en doublon.
+    .DESCRIPTION
+        Sept versions cohabitant sur un poste est un cas courant et suffit a rendre
+        le module inutilisable. Le moteur ne desinstalle rien : il constate et propose.
+    #>
+    [CmdletBinding()] param()
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+
+    $versions = @(Get-Module -ListAvailable -Name 'Microsoft.Graph.Authentication' |
+        Sort-Object Version -Descending)
+
+    if ($versions.Count -gt 1) {
+        $list = ($versions | ForEach-Object { $_.Version.ToString() }) -join ', '
+        $lines.Add(((T 'conn.graph.versions') -f $versions.Count, $list))
+        $lines.Add((T 'conn.graph.cleanup'))
+    }
+
+    $lines
 }
 
 function Connect-CceExchange {
@@ -267,7 +363,10 @@ function Connect-CceServices {
     if ($Services -contains 'PowerPlatform')  { Connect-CcePowerPlatform -Context $Context -Auth $Auth }
     if ($Services -contains 'Commerce')       { Connect-CceCommerce      -Context $Context -Auth $Auth }
 
-    $connected = ($Context.Services.GetEnumerator() | Where-Object { $_.Value }).Count
+    # @() obligatoire : un pipeline qui ne rend aucun element donne $null, et .Count
+    # leve alors sous Set-StrictMode Latest. Le cas se produit des qu'aucun service
+    # ne se connecte, c'est-a-dire precisement quand il faut afficher le bilan.
+    $connected = @($Context.Services.GetEnumerator() | Where-Object { $_.Value }).Count
     Write-CceLog ((T 'conn.summary') -f $connected, $Context.Services.Count) -Level INFO
 }
 
