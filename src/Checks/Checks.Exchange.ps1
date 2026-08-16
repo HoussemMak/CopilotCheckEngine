@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <# Controles 24 a 26 - EXCHANGE ONLINE #>
 
 function Get-CceMailboxSample {
@@ -214,7 +214,7 @@ function Invoke-CceCheck24 {
     # Repli : population licenciee inconnue (Microsoft Graph non connecte, ou aucune licence
     # Copilot attribuee). On conserve le signal historique sur un echantillon de boites, en
     # annoncant la limite dans la preuve.
-    $sample = Get-CceMailboxSample -Context $Context
+    $sample = @(Get-CceMailboxSample -Context $Context)
     if (-not $sample -or $sample.Count -eq 0) {
         return New-CceResult -Status 'Non evalue' -Observed (T 'c24.obs.none') `
             -Evidence (T 'c24.ev.none')

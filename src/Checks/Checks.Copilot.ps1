@@ -170,7 +170,7 @@ function Get-CceCopilotUsageDetail {
         if ($null -eq $response) { continue }
 
         $rows = @(Get-CceCopilotValue -InputObject $response -Name 'value')
-        if ($rows.Count -eq 0 -and $response -is [System.Collections.IEnumerable] -and $response -isnot [string]) {
+        if (@($rows).Count -eq 0 -and $response -is [System.Collections.IEnumerable] -and $response -isnot [string]) {
             $rows = @($response)
         }
 
@@ -338,7 +338,7 @@ function Invoke-CceCheck33 {
             @($_.PSObject.Properties | Where-Object { $_.Name -match 'LastActivityDate' -and -not [string]::IsNullOrWhiteSpace("$($_.Value)") }).Count -gt 0
         })
 
-        $evidenceParts.Add(((T 'c33.ev.usage') -f $rows.Count, $active.Count))
+        $evidenceParts.Add(((T 'c33.ev.usage') -f @($rows).Count, $active.Count))
 
         if ($active.Count -gt 0) {
             return New-CceResult -Status 'Conforme' `
@@ -347,7 +347,7 @@ function Invoke-CceCheck33 {
         }
 
         return New-CceResult -Status 'Attention' `
-            -Observed ((T 'c33.obs.warn') -f $rows.Count) `
+            -Observed ((T 'c33.obs.warn') -f @($rows).Count) `
             -Evidence ($evidenceParts | ConvertTo-CceText) `
             -Remediation (T 'c33.rem.warn')
     }
@@ -570,9 +570,9 @@ function Invoke-CceCheck37 {
 
     $rows = @($usage.Rows)
     $evidence = [System.Collections.Generic.List[string]]::new()
-    $evidence.Add(((T 'c37.ev.source') -f $usage.Source, $usage.Period, $rows.Count))
+    $evidence.Add(((T 'c37.ev.source') -f $usage.Source, $usage.Period, @($rows).Count))
 
-    if ($rows.Count -eq 0) {
+    if (@($rows).Count -eq 0) {
         $evidence.Add((T 'c37.ev.latency'))
 
         return New-CceResult -Status 'Attention' `
@@ -583,7 +583,7 @@ function Invoke-CceCheck37 {
 
     $activity = Get-CceWorkloadActivity -Rows $rows
     foreach ($entry in $activity.GetEnumerator()) {
-        $evidence.Add(((T 'c37.ev.line') -f $entry.Key, $entry.Value, $rows.Count))
+        $evidence.Add(((T 'c37.ev.line') -f $entry.Key, $entry.Value, @($rows).Count))
     }
 
     $volume = Measure-CceCopilotPromptVolume -Rows $rows
@@ -610,8 +610,8 @@ function Invoke-CceCheck37 {
 
     if ($chat -eq 0 -and $live.Count -eq 0) {
         return New-CceResult -Status 'Attention' `
-            -Observed ((T 'c37.obs.warn') -f $rows.Count) `
-            -Evidence ((@($evidence) + @((T 'c37.ev.warn') -f $rows.Count)) | ConvertTo-CceText -MaxItems 30) `
+            -Observed ((T 'c37.obs.warn') -f @($rows).Count) `
+            -Evidence ((@($evidence) + @((T 'c37.ev.warn') -f @($rows).Count)) | ConvertTo-CceText -MaxItems 30) `
             -Remediation (T 'c37.rem.warn')
     }
 
@@ -650,7 +650,7 @@ function Invoke-CceCheck38 {
 
     $rows = @($usage.Rows)
     $evidence = [System.Collections.Generic.List[string]]::new()
-    $evidence.Add(((T 'c38.ev.source') -f $usage.Source, $usage.Period, $rows.Count))
+    $evidence.Add(((T 'c38.ev.source') -f $usage.Source, $usage.Period, @($rows).Count))
 
     # Second appel du meme namespace : il prouve que la synthese v1.0 repond elle aussi.
     $summary = Invoke-CceGraphRequest -Quiet `
@@ -696,7 +696,7 @@ function Invoke-CceCheck38 {
 
     if ($concealed -eq $true -or $hashed -gt 0) {
         return New-CceResult -Status 'Attention' `
-            -Observed ((T 'c38.obs.warn') -f $rows.Count) `
+            -Observed ((T 'c38.obs.warn') -f @($rows).Count) `
             -Evidence ((@($evidence) + @(T 'c38.ev.warn')) | ConvertTo-CceText -MaxItems 20) `
             -Remediation (T 'c38.rem.warn')
     }
@@ -709,7 +709,7 @@ function Invoke-CceCheck38 {
     }
 
     New-CceResult -Status 'Conforme' `
-        -Observed ((T 'c38.obs.ok') -f $rows.Count, $usage.Source) `
+        -Observed ((T 'c38.obs.ok') -f @($rows).Count, $usage.Source) `
         -Evidence ((@($evidence) + @(T 'c38.ev.ok')) | ConvertTo-CceText -MaxItems 20)
 }
 

@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 <#
     Controles 85 a 87 - AGENTS, PLUGINS ET GOUVERNANCE COPILOT (lot 7, agents avances)
 
@@ -677,7 +677,7 @@ function Get-CcePpDlpCoverage {
 
     foreach ($group in (Get-CcePpList -InputObject $Policy -Name 'connectorGroups', 'ConnectorGroups')) {
         $classification = Get-CcePpText -InputObject $group -Name 'classification', 'Classification'
-        $count = (Get-CcePpList -InputObject $group -Name 'connectors', 'Connectors').Count
+        $count = @(Get-CcePpList -InputObject $group -Name 'connectors', 'Connectors').Count
 
         switch -Regex ($classification) {
             '(?i)^blocked'      { $blocked += $count }
@@ -788,8 +788,8 @@ function Invoke-CceCheck86 {
             if ($null -eq $configuration) { continue }
 
             $advancedRead = $true
-            $advanced += (Get-CcePpList -InputObject $configuration -Name 'connectorActionConfigurations', 'ConnectorActionConfigurations').Count
-            $advanced += (Get-CcePpList -InputObject $configuration -Name 'endpointConfigurations', 'EndpointConfigurations').Count
+            $advanced += @(Get-CcePpList -InputObject $configuration -Name 'connectorActionConfigurations', 'ConnectorActionConfigurations').Count
+            $advanced += @(Get-CcePpList -InputObject $configuration -Name 'endpointConfigurations', 'EndpointConfigurations').Count
         }
     }
 
@@ -933,7 +933,7 @@ function Invoke-CceCheck87 {
         $enabled = Get-CcePpText -InputObject $identity -Name 'accountEnabled'
         if (-not $enabled) { $enabled = T 'c87.val.unknown' }
 
-        $owners = (Get-CcePpList -InputObject $identity -Name 'owners').Count
+        $owners = @(Get-CcePpList -InputObject $identity -Name 'owners').Count
 
         # Les proprietaires et sponsors ne sont interroges que pour les identites qui en
         # paraissent depourvues : le nombre d'appels reste borne quelle que soit la taille

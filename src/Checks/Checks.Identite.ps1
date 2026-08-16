@@ -35,7 +35,7 @@ function Invoke-CceCheck10 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $policies = Get-CceConditionalAccessPolicy -Context $Context
+    $policies = @(Get-CceConditionalAccessPolicy -Context $Context)
     if (-not $policies -or $policies.Count -eq 0) {
         return New-CceResult -Status 'Non conforme' `
             -Observed (T 'c10.obs.none') `
@@ -81,7 +81,7 @@ function Invoke-CceCheck11 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $policies = Get-CceConditionalAccessPolicy -Context $Context
+    $policies = @(Get-CceConditionalAccessPolicy -Context $Context)
     $blocking = @($policies | Where-Object { Test-CcePolicyBlocks -Policy $_ -AppIds @($script:CceGraphAppId, 'All') })
 
     if ($blocking.Count -eq 0) {
@@ -104,7 +104,7 @@ function Invoke-CceCheck12 {
 
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
-    $policies = Get-CceConditionalAccessPolicy -Context $Context
+    $policies = @(Get-CceConditionalAccessPolicy -Context $Context)
     $blocking = @($policies | Where-Object { Test-CcePolicyBlocks -Policy $_ -AppIds $script:CceOfficeAppIds })
 
     if ($blocking.Count -eq 0) {

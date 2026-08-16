@@ -62,6 +62,10 @@ jobs:
         shell: pwsh
         run: ./tools/Test-CceChecks.ps1
 
+      - name: Analyse du mode strict (lectures de .Count exposees)
+        shell: pwsh
+        run: ./tools/Test-CceStrictMode.ps1
+
       - name: Non-regression (mode strict, reponses Graph nulles)
         shell: pwsh
         run: ./tools/Test-CceRegression.ps1

@@ -516,7 +516,7 @@ function Invoke-CceCheck05 {
     if (-not (Test-CceService -Service Graph -Context $Context)) { return New-CceNotEvaluated -Service Graph -Context $Context }
 
     $response = Invoke-CceGraphRequest -Uri 'https://graph.microsoft.com/beta/directory/subscriptions' -Quiet
-    $subs = (Get-CceResponseValue $response) | Where-Object { "$($_.skuPartNumber)" -like (Get-CceCopilotSkuPattern) }
+    $subs = @((Get-CceResponseValue $response) | Where-Object { "$($_.skuPartNumber)" -like (Get-CceCopilotSkuPattern) })
 
     if (-not $subs -or $subs.Count -eq 0) {
         return New-CceResult -Status 'Non evalue' `
