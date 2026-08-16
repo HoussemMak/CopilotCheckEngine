@@ -174,8 +174,16 @@ function Get-LogicalLine {
         $raw = $Lines[$i]
         if ($buffer -eq '') { $start = $i }
 
+        # PowerShell continue une expression sur la ligne suivante apres un backtick,
+        # mais aussi apres une virgule ou un operateur de pipeline : sans les traiter,
+        # les arguments passes a -f sur plusieurs lignes seraient comptes en partie.
         if ($raw -match '`\s*$') {
             $buffer += ($raw -replace '`\s*$', ' ')
+            continue
+        }
+
+        if ($raw -match '(,|\||\+)\s*$') {
+            $buffer += ($raw.TrimEnd() + ' ')
             continue
         }
 
